@@ -5,9 +5,9 @@ using UnityEngine;
 public class NeuralNetwork : MonoBehaviour
 {
     [Header("Neural Network")]
-    private List<OutputNode> OutputLayer = new List<OutputNode>();
-    private List<InputNode> InputLayer = new List<InputNode>();
-    private List<HiddenNode> HiddenLayer = new List<HiddenNode>();
+    private OutputLayer outputLayer = new OutputLayer();
+    private InputLayer inputLayer = new InputLayer();
+    private HiddenLayer hiddenLayer = new HiddenLayer();
 
     [Header("Network Size")]
     public int inputLayerSize;
@@ -16,20 +16,9 @@ public class NeuralNetwork : MonoBehaviour
 
     void Awake()
     {
-        for (int i = 0; i < inputLayerSize; i++) 
-        {
-            InputLayer.Add(new InputNode());
-        }
-
-        for (int i = 0; i < hiddenLayerSize; i++)
-        {
-            HiddenLayer.Add(new HiddenNode());
-        }
-
-        for (int i = 0; i < outputLayerSize; i++)
-        {
-            OutputLayer.Add(new OutputNode());
-        }
+        inputLayer.InitializeLayer(inputLayerSize);
+        hiddenLayer.InitializeLayer(hiddenLayerSize, inputLayerSize);
+        outputLayer.InitializeLayer(outputLayerSize, hiddenLayerSize);
     }
 
     private void Iterate()

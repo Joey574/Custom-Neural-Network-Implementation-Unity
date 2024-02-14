@@ -1,23 +1,36 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class Node
 {
-    public List<Node> inputs;
-    public List<float> weight;
-
+    public List<float> weights = new List<float>();
     public float bias;
-    public float output; 
 
-    public void ComputeOutput()
+    public float activation;
+
+    public Node(List<float> weights, float bias)
     {
-        for (int i = 0; i < inputs.Count; i++)
+        this.weights = weights;
+        this.bias = bias;
+    }
+
+    public void UpdateActivation(List<float> input)
+    {
+        activation = 0;
+
+        for (int i = 0; i < input.Count; i++) 
         {
-            output = inputs[i].output * weight[i];
+            activation = input[i] * weights[i];
         }
 
-        output += bias;
-
-        output = output > 1 ? 1 : Math.Max(0, output);
+        activation += bias;
+        activation = activation > 0 ? 1 : Mathf.Max(0, activation);
     }
+
+    public void SetActivation(float activation)
+    {
+        this.activation = activation;
+    }
+
 }
