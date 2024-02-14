@@ -25,12 +25,17 @@ public class Node
         }
 
         activation += bias;
-        activation = activation > 0 ? 1 : Mathf.Max(0, activation);
+        activation = SigmoidFunction(activation);
     }
 
     public void SetActivation(float activation)
     {
         this.activation = activation;
+    }
+
+    public float SigmoidFunction(float input)
+    {
+        return 1 / (1 - Mathf.Exp(-activation));
     }
 
 }
