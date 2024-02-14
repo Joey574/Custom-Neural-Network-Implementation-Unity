@@ -26,4 +26,16 @@ public class InputLayer
         }
     }
 
+    public List<float> GetActivation()
+    {
+        List<float> activation = new List<float>();
+
+        foreach (Node node in nodes)
+        {
+            activation.Add(node.activation);
+        }
+
+        return activation;
+    }
+
 }

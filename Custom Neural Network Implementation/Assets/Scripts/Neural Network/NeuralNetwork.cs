@@ -23,6 +23,11 @@ public class NeuralNetwork : MonoBehaviour
 
     private void Iterate()
     {
-    
+        // TODO
+        inputLayer.SetInput();
+
+        hiddenLayer.UpdateLayer(inputLayer.GetActivation());
+
+        outputLayer.UpdateLayer(hiddenLayer.GetActivation());
     }
 }
