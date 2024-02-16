@@ -47,14 +47,19 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void InitializeNetwork()
     {
+        // Vectors
         B1 = Vector<float>.Build.Dense(hiddenSize);
         B2 = Vector<float>.Build.Dense(outputSize);
 
+        dB1 = Vector<float>.Build.Dense(B1.Count);
+        dB2 = Vector<float>.Build.Dense(B2.Count);
+
+        // Matrices
         A1 = Matrix<float>.Build.Dense(hiddenSize, dataSize);
-        A1Total = Matrix<float>.Build.Dense(hiddenSize, dataSize);
+        A1Total = Matrix<float>.Build.Dense(A1.RowCount, A1.ColumnCount);
 
         A2 = Matrix<float>.Build.Dense(outputSize, dataSize);
-        A2Total = Matrix<float>.Build.Dense(outputSize, dataSize);
+        A2Total = Matrix<float>.Build.Dense(A2.RowCount, A2.ColumnCount);
 
         W1 = Matrix<float>.Build.Dense(inputSize, hiddenSize);
         W2 = Matrix<float>.Build.Dense(hiddenSize, outputSize);
@@ -64,9 +69,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         dZ1 = Matrix<float>.Build.Dense(A1Total.RowCount, A1Total.ColumnCount);
         dZ2 = Matrix<float>.Build.Dense(A2Total.RowCount, A2Total.ColumnCount);
-
-        dB1 = Vector<float>.Build.Dense(B1.Count);
-        dB2 = Vector<float>.Build.Dense(B2.Count);
 
         for (int row = 0; row < inputSize; row++)
         {
@@ -131,22 +133,44 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Vector<float> vecX = Vector<float>.Build.Dense(x);
 
-        Debug.Log("Size: " + vecX.Count);
-        Debug.Log("weight size: " + W1.Row(0).Count);
+        Debug.Log("input size: " + vecX.Count);
         Debug.Log("bias size: " + B1.Count);
-        Debug.Log("A1Total: " + A1Total.Column(0).Count);
+        Debug.Log("A1Total: " + A1Total.Row(0).Count);
+
+        Debug.Log("Weight dimensions: " + W1.Row(0).Count + " x " + W1.Column(0).Count);
+
+        // A1 hidden x data (128 x 1) ie. 128 rows w/ 1 value :: 128 columns w/ 1 value
+        // W1 input x hidden (784 x 128) ie. 784 rows w/ 128 values :: 128 columns w/ 784 values
 
         for (int i = 0; i < dataSize; i++)
         {
-            A1Total.SetColumn(i, W1.Column(i).DotProduct(vecX) + B1);
-            A1 = Sigmoid(A1Total);
+            for (int  j = 0; j < hiddenSize; j++)
+            {
+                A1Total[j, i] = W1.Column(j).DotProduct(vecX) + B1[j];
+            }
         }
+        A1 = Sigmoid(A1Total);
 
         for (int i = 0; i < dataSize; i++)
         {
-            A2Total.SetRow(i, W2.Column(i).DotProduct(A1.Column(i)) + B2);
+            for (int j = 0; j < outputSize; j++)
+            {
+                A2Total[j, i] = W2.Column(j).DotProduct(A1.Row(j)) + B2[j];
+            }
         }
         A2 = Softmax(A2Total);
+
+        //for (int i = 0; i < dataSize; i++)
+        //{
+        //    A1Total.SetColumn(i, W1.Column(i).DotProduct(vecX) + B1);
+        //    A1 = Sigmoid(A1Total);
+        //}
+
+        //for (int i = 0; i < dataSize; i++)
+        //{
+        //    A2Total.SetRow(i, W2.Column(i).DotProduct(A1.Column(i)) + B2);
+        //}
+        //A2 = Softmax(A2Total);
     }
 
     private void BackwardProp()
