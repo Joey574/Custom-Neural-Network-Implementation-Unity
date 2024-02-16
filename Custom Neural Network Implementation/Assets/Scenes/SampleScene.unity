@@ -262,6 +262,8 @@ MonoBehaviour:
   inputSize: 784
   hiddenSize: 128
   outputSize: 10
+  learningRate: 0.1
+  dataSize: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

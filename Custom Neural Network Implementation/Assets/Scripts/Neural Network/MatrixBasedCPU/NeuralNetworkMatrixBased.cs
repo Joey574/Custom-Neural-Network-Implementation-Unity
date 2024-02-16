@@ -3,6 +3,7 @@ using UnityEngine;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using Unity.VisualScripting;
+using System;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -71,7 +72,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             for (int col = 0; col < hiddenSize; col++)
             {
-                W1[row, col] = Random.Range(-0.5f, 0.5f);
+                W1[row, col] = UnityEngine.Random.Range(-0.5f, 0.5f);
             }
         }
 
@@ -79,18 +80,18 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             for (int col = 0; col < outputSize; col++)
             {
-                W2[row, col] = Random.Range(-0.5f, 0.5f);
+                W2[row, col] = UnityEngine.Random.Range(-0.5f, 0.5f);
             }
         }
 
         for (int i = 0; i < hiddenSize; i++)
         {
-            B1[i] = Random.Range(-0.5f, 0.5f);
+            B1[i] = UnityEngine.Random.Range(-0.5f, 0.5f);
         }
 
         for (int i = 0; i < outputSize; i++)
         {
-            B2[i] = Random.Range(-0.5f, 0.5f);
+            B2[i] = UnityEngine.Random.Range(-0.5f, 0.5f);
         }
 
         Debug.Log("W1 Connections: " + (W1.ColumnCount * W1.RowCount));
@@ -109,7 +110,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         for (int i = 0; i < inputSize; i++)
         {
-            x[i] = Random.Range(-10, 10);
+            x[i] = UnityEngine.Random.Range(-10, 10);
         }
 
         ForwardProp(x);
@@ -130,15 +131,20 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Vector<float> vecX = Vector<float>.Build.Dense(x);
 
-        for (int i = 0; i < hiddenSize; i++)
+        Debug.Log("Size: " + vecX.Count);
+        Debug.Log("weight size: " + W1.Row(0).Count);
+        Debug.Log("bias size: " + B1.Count);
+        Debug.Log("A1Total: " + A1Total.Column(0).Count);
+
+        for (int i = 0; i < dataSize; i++)
         {
-            A1Total[i] = W1.Column(i).DotProduct(vecX) + B1[i];
-            A1[i] = Sigmoid(A1Total[i]);
+            A1Total.SetColumn(i, W1.Column(i).DotProduct(vecX) + B1);
+            A1 = Sigmoid(A1Total);
         }
 
-        for (int i = 0; i < outputSize; i++)
+        for (int i = 0; i < dataSize; i++)
         {
-            A2Total[i] = W2.Column(i).DotProduct(A1) + B2[i];
+            A2Total.SetRow(i, W2.Column(i).DotProduct(A1.Column(i)) + B2);
         }
         A2 = Softmax(A2Total);
     }
@@ -159,26 +165,56 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         B2 = B2 - learningRate * dB2;
     }
 
-    private Vector<float> Softmax(Vector<float> A)
+    private Matrix<float> Softmax(Matrix<float> A)
     {
-        Vector<float> predictions = Vector<float>.Build.Dense(outputSize); ;
+        //Vector<float> predictions = Vector<float>.Build.Dense(outputSize); ;
+        //float sum = 0;
+
+        //for (int i = 0; i < A.Count; i++)
+        //{
+        //    sum += Mathf.Exp(A[i]);
+        //}
+
+        //for (int i = 0; i < A.Count; i++)
+        //{
+        //    predictions[i] = Mathf.Exp(A[i]) / sum;
+        //}
+
+        //return predictions;
+
         float sum = 0;
+        Matrix<float> softmax = A;
 
-        for (int i = 0; i < A.Count; i++)
+        for (int r = 0; r < A.RowCount; r++)
         {
-            sum += Mathf.Exp(A[i]);
+            for (int c = 0; c <  A.ColumnCount; c++)
+            {
+                sum += Mathf.Exp(A[r, c]);
+            }
         }
 
-        for (int i = 0; i < A.Count; i++)
+        for (int r = 0; r < A.RowCount; r++)
         {
-            predictions[i] = Mathf.Exp(A[i]) / sum;
+            for (int c = 0; c < A.ColumnCount; c++)
+            {
+                softmax[r, c] = Mathf.Exp(softmax[r, c]);
+            }
         }
 
-        return predictions;
+        softmax.Divide(sum);
+
+        return softmax;
     }
 
-    private float Sigmoid(float x)
+    private Matrix<float> Sigmoid(Matrix<float> x)
     {
-        return 1 / (1 + Mathf.Exp(-x));
+        for (int c = 0; c < x.ColumnCount; c++)
+        {
+            for (int r = 0; r < x.RowCount; r++)
+            {
+                x[r, c] = 1 / (1 + Mathf.Exp(-x[r, c]));
+            }
+        }
+        return x;
     }
 }
