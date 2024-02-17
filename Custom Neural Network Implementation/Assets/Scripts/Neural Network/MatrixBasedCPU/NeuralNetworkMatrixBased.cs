@@ -108,7 +108,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void TestNetwork()
     {
-        float[] x = new float[inputSize];
+        Vector<float> x = Vector<float>.Build.Dense(inputSize);
 
         for (int i = 0; i < inputSize; i++)
         {
@@ -121,32 +121,26 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void DisplayProbabilities()
     {
+        // A2 output x data (10 x 1) ie. 10 rows w/ 1 value :: 1 column w/ 10 values
+
         for (int i = 0; i < outputSize; i++)
         {
-            Debug.Log("Probability of class [" + i + "]: " + A2.Column(A2.ColumnCount - 1).Sum());
+            Debug.Log("Probability of class [" + i + "]: " + A2.Column(A2.ColumnCount - 1)[i]);
         }
 
         Debug.Log("Sum of probabilities: " + A2.Column(A2.ColumnCount - 1).Sum());
     }
 
-    private void ForwardProp(float[] x)
+    private void ForwardProp(Vector<float> x)
     {
-        Vector<float> vecX = Vector<float>.Build.Dense(x);
-
-        Debug.Log("input size: " + vecX.Count);
-        Debug.Log("bias size: " + B1.Count);
-        Debug.Log("A1Total: " + A1Total.Row(0).Count);
-
-        Debug.Log("Weight dimensions: " + W1.Row(0).Count + " x " + W1.Column(0).Count);
-
-        // A1 hidden x data (128 x 1) ie. 128 rows w/ 1 value :: 128 columns w/ 1 value
+        // A1 hidden x data (128 x 1) ie. 128 rows w/ 1 value :: 1 column w/ 128 values
         // W1 input x hidden (784 x 128) ie. 784 rows w/ 128 values :: 128 columns w/ 784 values
 
         for (int i = 0; i < dataSize; i++)
         {
             for (int  j = 0; j < hiddenSize; j++)
             {
-                A1Total[j, i] = W1.Column(j).DotProduct(vecX) + B1[j];
+                A1Total[j, i] = W1.Column(j).DotProduct(x) + B1[j];
             }
         }
         A1 = Sigmoid(A1Total);
@@ -155,22 +149,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             for (int j = 0; j < outputSize; j++)
             {
-                A2Total[j, i] = W2.Column(j).DotProduct(A1.Row(j)) + B2[j];
+                A2Total[j, i] = W2.Column(j).DotProduct(A1.Column(i)) + B2[j];
             }
         }
         A2 = Softmax(A2Total);
-
-        //for (int i = 0; i < dataSize; i++)
-        //{
-        //    A1Total.SetColumn(i, W1.Column(i).DotProduct(vecX) + B1);
-        //    A1 = Sigmoid(A1Total);
-        //}
-
-        //for (int i = 0; i < dataSize; i++)
-        //{
-        //    A2Total.SetRow(i, W2.Column(i).DotProduct(A1.Column(i)) + B2);
-        //}
-        //A2 = Softmax(A2Total);
     }
 
     private void BackwardProp()
@@ -191,42 +173,22 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Matrix<float> Softmax(Matrix<float> A)
     {
-        //Vector<float> predictions = Vector<float>.Build.Dense(outputSize); ;
-        //float sum = 0;
-
-        //for (int i = 0; i < A.Count; i++)
-        //{
-        //    sum += Mathf.Exp(A[i]);
-        //}
-
-        //for (int i = 0; i < A.Count; i++)
-        //{
-        //    predictions[i] = Mathf.Exp(A[i]) / sum;
-        //}
-
-        //return predictions;
-
-        float sum = 0;
         Matrix<float> softmax = A;
 
-        for (int r = 0; r < A.RowCount; r++)
+        for (int i = 0; i < dataSize; i++)
         {
-            for (int c = 0; c <  A.ColumnCount; c++)
+            float sum = 0;
+
+            for (int r = 0; r < A.RowCount; r++)
             {
-                sum += Mathf.Exp(A[r, c]);
+                sum += Mathf.Exp(A[r, i]);
+            }
+
+            for (int r = 0; r < A.RowCount; r++)
+            {
+                softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
             }
         }
-
-        for (int r = 0; r < A.RowCount; r++)
-        {
-            for (int c = 0; c < A.ColumnCount; c++)
-            {
-                softmax[r, c] = Mathf.Exp(softmax[r, c]);
-            }
-        }
-
-        softmax.Divide(sum);
-
         return softmax;
     }
 
