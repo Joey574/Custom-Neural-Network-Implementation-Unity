@@ -155,11 +155,21 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         A2 = Softmax(A2Total);
     }
 
-    private void BackwardProp()
+    private void BackwardProp(Vector<float> x)
     {
         //dZ2 = A2 - y;
 
+        //      dW2 = 1 / m * dZ2.dot(A1.T)
+        //      db2 = 1 / m * np.sum(dZ2)
+        //      dZ1 = W2.T.dot(dZ2) * ReLU_deriv(Z1)
+        //      dW1 = 1 / m * dZ1.dot(X.T)
+        //      db1 = 1 / m * np.sum(dZ1)
 
+        dW2 = 1 / dataSize * dZ2.PointwiseMultiply(A1);
+        dB2 = 1 / dataSize * dZ2.ColumnAbsoluteSums();
+        dZ1 = W2.PointwiseMultiply(dZ2) * SigmoidDerivative(A1Total);
+        dW1 = 1 / dataSize * dZ1.PointwiseMultiply(x.ToRowMatrix());
+        dB2 = 1/ dataSize * dZ1.ColumnAbsoluteSums();
     }
 
     private void UpdateNetwork()
@@ -202,5 +212,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             }
         }
         return x;
+    }
+
+    private Matrix<float> SigmoidDerivative(Matrix<float> ATotal)
+    {
+        return Sigmoid(ATotal) * (1 - Sigmoid(ATotal));
     }
 }
