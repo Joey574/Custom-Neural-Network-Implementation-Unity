@@ -225,7 +225,6 @@ GameObject:
   m_Component:
   - component: {fileID: 656604484}
   - component: {fileID: 656604485}
-  - component: {fileID: 656604486}
   m_Layer: 0
   m_Name: NeuralNet
   m_TagString: Untagged
@@ -264,19 +263,8 @@ MonoBehaviour:
   hiddenSize: 128
   outputSize: 10
   learningRate: 0.1
+  iterations: 10
   dataSize: 1
---- !u!114 &656604486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 656604482}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8112191d6d9f20946a3e564dccc0cb8f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

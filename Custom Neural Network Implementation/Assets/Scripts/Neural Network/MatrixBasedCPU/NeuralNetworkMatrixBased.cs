@@ -13,7 +13,11 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     public int outputSize;
 
     public float learningRate;
+    public int iterations;
+
+    [Header("Input data")]
     public int dataSize;
+    private Vector<int> labels;
 
     [Header("Neural Net Data")]
     private Matrix<float> W1;
@@ -106,6 +110,25 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         Debug.Log("INITIALIZATION COMPLETE");
     }
 
+    private void TrainNetword()
+    {
+        for (int i = 0; i < iterations; i++)
+        {
+            Vector<float> input = Vector<float>.Build.Dense(inputSize);
+            // Load input[i]
+
+            ForwardProp(input);
+            BackwardProp(input);
+            UpdateNetwork();
+
+            if (i % 50 == 0)
+            {
+                Debug.Log("Iteration: " + i);
+                Debug.Log("Accuracy: " + Accuracy(Predictions()));
+            }
+        }
+    }
+
     private void TestNetwork()
     {
         Vector<float> x = Vector<float>.Build.Dense(inputSize);
@@ -123,12 +146,33 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         // A2 output x data (10 x 1) ie. 10 rows w/ 1 value :: 1 column w/ 10 values
 
-        for (int i = 0; i < outputSize; i++)
+        Debug.Log("Probabilities of last input: " + A2.Column(A2.ColumnCount - 1).ToCommaSeparatedString() + " :: Sum: " + A2.Column(A2.ColumnCount - 1).Sum());
+    }
+
+    private float Accuracy(Vector<int> predictions)
+    {
+        float correct = 0;
+
+        for (int i = 0; i < predictions.Count; i++)
         {
-            Debug.Log("Probability of class [" + i + "]: " + A2.Column(A2.ColumnCount - 1)[i]);
+            if (predictions[i] == labels[i])
+            {
+                correct++;
+            }
+        }
+        return correct / labels.Count;
+    }
+
+    private Vector<int> Predictions()
+    {
+        int[] prediction = new int[dataSize];
+
+        for (int i = 0; i < dataSize; i++)
+        {
+            prediction[i] = A2.Row(i).MaximumIndex();
         }
 
-        Debug.Log("Sum of probabilities: " + A2.Column(A2.ColumnCount - 1).Sum());
+        return Vector<int>.Build.Dense(prediction);
     }
 
     private void ForwardProp(Vector<float> x)
