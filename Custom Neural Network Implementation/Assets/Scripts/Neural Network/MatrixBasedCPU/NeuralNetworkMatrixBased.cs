@@ -4,6 +4,7 @@ using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using Unity.VisualScripting;
 using System;
+using System.Collections.Generic;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -15,9 +16,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     public float learningRate;
     public int iterations;
 
+    public bool started = false;
+
     [Header("Input data")]
-    public int dataSize;
-    private Vector<int> labels;
+    private LoadImage dataSet;
 
     [Header("Neural Net Data")]
     private Matrix<float> W1;
@@ -45,8 +47,17 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     void Awake()
     {
-        InitializeNetwork();
-        TestNetwork();
+        dataSet = gameObject.GetComponent<LoadImage>();
+    }
+
+    void Update()
+    {
+        if (dataSet.ImagesLoaded && !started)
+        {
+            started = true;
+            InitializeNetwork();
+            StartCoroutine(nameof(TrainNetwork));
+        }
     }
 
     private void InitializeNetwork()
@@ -59,10 +70,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         dB2 = Vector<float>.Build.Dense(B2.Count);
 
         // Matrices
-        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSize);
+        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSet.imageNum);
         A1Total = Matrix<float>.Build.Dense(A1.RowCount, A1.ColumnCount);
 
-        A2 = Matrix<float>.Build.Dense(outputSize, dataSize);
+        A2 = Matrix<float>.Build.Dense(outputSize, dataSet.imageNum);
         A2Total = Matrix<float>.Build.Dense(A2.RowCount, A2.ColumnCount);
 
         W1 = Matrix<float>.Build.Dense(inputSize, hiddenSize);
@@ -110,18 +121,17 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         Debug.Log("INITIALIZATION COMPLETE");
     }
 
-    private void TrainNetword()
+    private void TrainNetwork()
     {
         for (int i = 0; i < iterations; i++)
         {
             Vector<float> input = Vector<float>.Build.Dense(inputSize);
-            // Load input[i]
 
             ForwardProp(input);
-            BackwardProp(input);
+            BackwardProp(input, i);
             UpdateNetwork();
 
-            if (i % 50 == 0)
+            if (i % 10 == 0)
             {
                 Debug.Log("Iteration: " + i);
                 Debug.Log("Accuracy: " + Accuracy(Predictions()));
@@ -155,19 +165,19 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         for (int i = 0; i < predictions.Count; i++)
         {
-            if (predictions[i] == labels[i])
+            if (predictions[i] == dataSet.labels[i])
             {
                 correct++;
             }
         }
-        return correct / labels.Count;
+        return correct / dataSet.imageNum;
     }
 
     private Vector<int> Predictions()
     {
-        int[] prediction = new int[dataSize];
+        int[] prediction = new int[dataSet.imageNum];
 
-        for (int i = 0; i < dataSize; i++)
+        for (int i = 0; i < dataSet.imageNum; i++)
         {
             prediction[i] = A2.Row(i).MaximumIndex();
         }
@@ -180,7 +190,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         // A1 hidden x data (128 x 1) ie. 128 rows w/ 1 value :: 1 column w/ 128 values
         // W1 input x hidden (784 x 128) ie. 784 rows w/ 128 values :: 128 columns w/ 784 values
 
-        for (int i = 0; i < dataSize; i++)
+        for (int i = 0; i < dataSet.imageNum; i++)
         {
             for (int  j = 0; j < hiddenSize; j++)
             {
@@ -189,7 +199,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
         A1 = Sigmoid(A1Total);
 
-        for (int i = 0; i < dataSize; i++)
+        for (int i = 0; i < dataSet.imageNum; i++)
         {
             for (int j = 0; j < outputSize; j++)
             {
@@ -199,9 +209,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         A2 = Softmax(A2Total);
     }
 
-    private void BackwardProp(Vector<float> x)
+    private void BackwardProp(Vector<float> x, int index)
     {
-        //dZ2 = A2 - y;
+        Vector<float> y = Vector<float>.Build.Dense(outputSize);
+        y[dataSet.labels[index]] = 1;
+
+        for (int i = 0; i < dataSet.imageNum; i++)
+        {
+            dZ2.SetColumn(i, A2.Column(i) - y);
+        }
 
         //      dW2 = 1 / m * dZ2.dot(A1.T)
         //      db2 = 1 / m * np.sum(dZ2)
@@ -209,11 +225,11 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         //      dW1 = 1 / m * dZ1.dot(X.T)
         //      db1 = 1 / m * np.sum(dZ1)
 
-        dW2 = 1 / dataSize * dZ2.PointwiseMultiply(A1);
-        dB2 = 1 / dataSize * dZ2.ColumnAbsoluteSums();
+        dW2 = 1 / dataSet.imageNum * dZ2.Multiply(A1);
+        dB2 = 1 / dataSet.imageNum * dZ2.ColumnSums();
         dZ1 = W2.PointwiseMultiply(dZ2) * SigmoidDerivative(A1Total);
-        dW1 = 1 / dataSize * dZ1.PointwiseMultiply(x.ToRowMatrix());
-        dB2 = 1/ dataSize * dZ1.ColumnAbsoluteSums();
+        dW1 = 1 / dataSet.imageNum * dZ1.Multiply(x.ToRowMatrix());
+        dB1 = 1/ dataSet.imageNum * dZ1.ColumnSums();
     }
 
     private void UpdateNetwork()
@@ -229,7 +245,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Matrix<float> softmax = A;
 
-        for (int i = 0; i < dataSize; i++)
+        for (int i = 0; i < dataSet.imageNum; i++)
         {
             float sum = 0;
 
