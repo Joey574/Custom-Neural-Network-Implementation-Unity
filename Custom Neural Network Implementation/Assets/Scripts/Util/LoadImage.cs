@@ -5,6 +5,9 @@ using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections;
+using System.Threading;
+using System.Data;
 
 public class LoadImage : MonoBehaviour
 {
@@ -15,12 +18,22 @@ public class LoadImage : MonoBehaviour
     private const string TestingLabelPath = "Assets/Resources/Testing Data/t10k-labels.idx1-ubyte";
 
     public Matrix<float> images;
+    public Matrix<float> Y;
     public List<int> labels;
     public int imageNum;
 
     public bool ImagesLoaded = false;
 
     void Awake()
+    {
+        Thread t = new Thread(LoadImages);
+        t.Start();
+
+        IEnumerator enumerator = JoinThread(t);
+        StartCoroutine(enumerator);
+    }
+    
+    private void LoadImages()
     {
         BinaryReader reader = new BinaryReader(new FileStream(TrainingImagePath, FileMode.Open));
         BinaryReader labelReader = new BinaryReader(new FileStream(TrainingLabelPath, FileMode.Open));
@@ -62,7 +75,25 @@ public class LoadImage : MonoBehaviour
         reader.Close();
         labelReader.Close();
 
+        Y = Matrix<float>.Build.Dense(10, labels.Count);
+
+        for (int i = 0; i < labels.Count; i++)
+        {
+            Vector<float> y = Vector<float>.Build.Dense(10);
+            y[labels[i]] = 1;
+            Y.SetColumn(i, y);
+        }      
+
         ImagesLoaded = true;
+    }
+
+    private IEnumerator JoinThread(Thread t)
+    {
+        while (!ImagesLoaded)
+        {
+            yield return null;
+        }
+        t.Join();
     }
 
     private int ReadBigInt32(BinaryReader br)
