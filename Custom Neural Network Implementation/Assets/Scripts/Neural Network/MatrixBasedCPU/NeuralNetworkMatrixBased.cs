@@ -179,14 +179,14 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Vector<float> Predictions()
     {
-        float[] prediction = new float[dataSet.imageNum];
+        float[] predictions = new float[dataSet.imageNum];
 
         for (int i = 0; i < dataSet.imageNum; i++)
         {
-            prediction[i] = A2.Column(i).MaximumIndex();
+            predictions[i] = A2.Column(i).MaximumIndex();
         }
 
-        return Vector<float>.Build.Dense(prediction);
+        return Vector<float>.Build.Dense(predictions);
     }
 
     private void ForwardProp()
@@ -197,9 +197,13 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         Parallel.For(0, dataSet.imageNum, i =>
         {
             A1Total.SetColumn(i, W1.LeftMultiply(dataSet.images.Column(i)) + B1);
-            A2Total.SetColumn(i, W2.LeftMultiply(A1.Column(i)) + B2);
         });
         A1 = Sigmoid(A1Total);
+
+        Parallel.For(0, dataSet.imageNum, i =>
+        {
+            A2Total.SetColumn(i, W2.LeftMultiply(A1.Column(i)) + B2);
+        });
         A2 = Softmax(A2Total);
     }
 
@@ -295,6 +299,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private void OnDestroy()
     {
         complete = true;
+        t.Interrupt();
         t.Join();
     }
 }
