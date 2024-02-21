@@ -266,6 +266,8 @@ MonoBehaviour:
   learningRate: 0.1
   iterations: 50
   started: 0
+  initialized: 0
+  complete: 0
 --- !u!114 &656604486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -280,6 +282,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   labels: 
   imageNum: 0
+  dataNum: 1000
   ImagesLoaded: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

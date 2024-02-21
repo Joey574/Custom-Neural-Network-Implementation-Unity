@@ -35,7 +35,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private Vector<float> B1;
     private Vector<float> B2;
 
-    Thread t;
+    private Thread trainingThread;
 
     [Header("Neural Net Outputs")]
     private Matrix<float> A1Total;
@@ -64,15 +64,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         if (dataSet.ImagesLoaded && !started)
         {
             started = true;
-            t = new Thread(TrainNetwork);
+            trainingThread = new Thread(TrainNetwork);
             InitializeNetwork();
             UnityEngine.Debug.Log("TRAINING STARTED");
-            t.Start();
+            trainingThread.Start();
         }
 
         if (complete)
         {
-            t.Join();
+            trainingThread.Join();
         }
     }
 
@@ -86,10 +86,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         dB2 = Vector<float>.Build.Dense(B2.Count);
 
         // Matrices
-        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSet.imageNum);
+        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSet.dataNum);
         A1Total = Matrix<float>.Build.Dense(A1.RowCount, A1.ColumnCount);
 
-        A2 = Matrix<float>.Build.Dense(outputSize, dataSet.imageNum);
+        A2 = Matrix<float>.Build.Dense(outputSize, dataSet.dataNum);
         A2Total = Matrix<float>.Build.Dense(A2.RowCount, A2.ColumnCount);
 
         W1 = Matrix<float>.Build.Dense(inputSize, hiddenSize);
@@ -174,14 +174,14 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 correct++;
             }
         }
-        return correct / dataSet.imageNum;
+        return correct / dataSet.dataNum;
     }
 
     private Vector<float> Predictions()
     {
-        float[] predictions = new float[dataSet.imageNum];
+        float[] predictions = new float[dataSet.dataNum];
 
-        for (int i = 0; i < dataSet.imageNum; i++)
+        for (int i = 0; i < dataSet.dataNum; i++)
         {
             predictions[i] = A2.Column(i).MaximumIndex();
         }
@@ -191,16 +191,13 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void ForwardProp()
     {
-        // A1 hidden x data (128 x 1) ie. 128 rows w/ 1 value :: 1 column w/ 128 values
-        // W1 input x hidden (784 x 128) ie. 784 rows w/ 128 values :: 128 columns w/ 784 values
-
-        Parallel.For(0, dataSet.imageNum, i =>
+        Parallel.For(0, dataSet.dataNum, i =>
         {
             A1Total.SetColumn(i, W1.LeftMultiply(dataSet.images.Column(i)) + B1);
         });
-        A1 = Sigmoid(A1Total);
+        A1 = ReLU(A1Total);
 
-        Parallel.For(0, dataSet.imageNum, i =>
+        Parallel.For(0, dataSet.dataNum, i =>
         {
             A2Total.SetColumn(i, W2.LeftMultiply(A1.Column(i)) + B2);
         });
@@ -211,38 +208,46 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         dZ2 = A2 - dataSet.Y;
 
-        Parallel.For(0, dataSet.imageNum, i =>
+        Parallel.For(0, dataSet.dataNum, i =>
         {
             for (int j = 0; j < hiddenSize; j++)
             {
-                dZ1[j, i] = W2.Row(j).DotProduct(dZ2.Column(i)) * SigmoidDerivative(A1Total[j, i]);
+                dZ1[j, i] = W2.Row(j).DotProduct(dZ2.Column(i)) * ReLUDerivative(A1Total[j, i]);
             }
         });
 
-        dB1 = 1 / dataSet.imageNum * dZ1.RowSums();
-        dB2 = 1 / dataSet.imageNum * dZ2.RowSums();
+        dB1 = 1 / dataSet.dataNum * dZ1.RowSums();
+        dB2 = 1 / dataSet.dataNum * dZ2.RowSums();
 
         Parallel.For(0, hiddenSize, i =>
         {
             for (int j = 0; j < inputSize; j++)
             {
-                dW1[j, i] = 1 / dataSet.imageNum * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
+                dW1[j, i] = (1 / dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
+                UnityEngine.Debug.Log("Dw1: " + dW1[j, i] + " :: Dot Product: " + dZ1.Row(i).DotProduct(dataSet.images.Row(j)));
             }
         });
+
 
         Parallel.For(0, outputSize, i =>
         {
             for (int j = 0; j < hiddenSize; j++)
             {
-                dW2[j, i] = 1 / dataSet.imageNum * dZ2.Row(i).DotProduct(A1.Row(j));
+                dW2[j, i] = 1 / dataSet.dataNum * dZ2.Row(i).DotProduct(A1.Row(j));
             }
         });
     }
 
     private void UpdateNetwork()
     {
+        //UnityEngine.Debug.Log("Prior weight: " + W1[0, 0]);
+        //UnityEngine.Debug.Log("Deriv: " + dW1[0, 0]);
+        //UnityEngine.Debug.Log("Predicted after: " + (W1[0,0] - (learningRate * dW1[0, 0])));
+
         W1 = W1 - learningRate * dW1;
         W2 = W2 - learningRate * dW2;
+
+        //UnityEngine.Debug.Log("After: " + W1[0, 0]);
 
         B1 -= dB1.Multiply(learningRate);
         B2 -= dB2.Multiply(learningRate);
@@ -252,7 +257,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Matrix<float> softmax = A;
 
-        for (int i = 0; i < dataSet.imageNum; i++)
+        for (int i = 0; i < dataSet.dataNum; i++)
         {
             float sum = 0;
 
@@ -296,10 +301,35 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         return Sigmoid(ATotal) * (1 - Sigmoid(ATotal));
     }
 
+    private Matrix<float> ReLU(Matrix<float> ATotal) 
+    {
+        Matrix<float> result = Matrix<float>.Build.Dense(ATotal.RowCount, ATotal.ColumnCount);
+
+        for (int c = 0; c <  ATotal.ColumnCount; c++)
+        {
+            for (int r = 0; r < ATotal.RowCount; r++)
+            {
+                result[r, c] = ATotal[r, c] > 1.0f ? 1.0f : ATotal[r, c] < 0 ? 0.0f : ATotal[r, c];
+            }
+        }
+
+        return result;
+    }
+
+    private float ReLU(float ATotal)
+    {
+        return ATotal > 1 ? 1.0f : ATotal < 0 ? 0.0f : ATotal;
+    }
+
+    private float ReLUDerivative(float ATotal)
+    {
+        return ATotal > 0 ? 1 : 0;
+    }
+
     private void OnDestroy()
     {
         complete = true;
-        t.Interrupt();
-        t.Join();
+        trainingThread.Interrupt();
+        trainingThread.Join();
     }
 }
