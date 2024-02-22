@@ -264,10 +264,11 @@ MonoBehaviour:
   hiddenSize: 128
   outputSize: 10
   learningRate: 0.1
-  iterations: 50
+  iterations: 250
   started: 0
   initialized: 0
   complete: 0
+  testingComplete: 0
 --- !u!114 &656604486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -281,9 +282,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   labels: 
-  imageNum: 0
-  dataNum: 1000
+  dataNum: 30000
   ImagesLoaded: 0
+  TestingLabels: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -24,6 +24,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     public bool started = false;
     public bool initialized = false;
     public bool complete = false;
+    public bool testingComplete = false;
 
     [Header("Input data")]
     private LoadImage dataSet;
@@ -36,6 +37,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private Vector<float> B2;
 
     private Thread trainingThread;
+    private Thread testingThread;
 
     [Header("Neural Net Outputs")]
     private Matrix<float> A1Total;
@@ -72,7 +74,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         if (complete)
         {
+            complete = false;
             trainingThread.Join();
+            testingThread = new Thread(TestNetwork);
+            testingThread.Start();
+        }
+
+        if (testingComplete)
+        {
+            testingThread.Join();
         }
     }
 
@@ -146,7 +156,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             var watch = Stopwatch.StartNew();
 
-            ForwardProp();
+            ForwardProp(dataSet.images);
             UnityEngine.Debug.Log("Forward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
 
             watch.Restart();
@@ -156,20 +166,27 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             UpdateNetwork();
 
-            UnityEngine.Debug.Log("Accuracy: " + Accuracy(Predictions()));
+            UnityEngine.Debug.Log("Accuracy: " + Accuracy(Predictions(dataSet.dataNum), dataSet.labels));
 
             watch.Stop();
         }
         complete = true;
     }
 
-    private float Accuracy(Vector<float> predictions)
+    private void TestNetwork()
+    {
+        ForwardProp(dataSet.TestingImages);
+        UnityEngine.Debug.Log("Final Accuracy: " + Accuracy(Predictions(dataSet.TestingImages.ColumnCount), dataSet.TestingLabels));
+        testingComplete = true;
+    }
+
+    private float Accuracy(Vector<float> predictions, List<int> labels)
     {
         float correct = 0;
 
         for (int i = 0; i < predictions.Count; i++)
         {
-            if (predictions[i].AlmostEqual(dataSet.labels[i], 0.1))
+            if (predictions[i].AlmostEqual(labels[i], 0.1))
             {
                 correct++;
             }
@@ -177,11 +194,11 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         return correct / dataSet.dataNum;
     }
 
-    private Vector<float> Predictions()
+    private Vector<float> Predictions(int len)
     {
-        float[] predictions = new float[dataSet.dataNum];
+        float[] predictions = new float[len];
 
-        for (int i = 0; i < dataSet.dataNum; i++)
+        for (int i = 0; i < len; i++)
         {
             predictions[i] = A2.Column(i).MaximumIndex();
         }
@@ -189,15 +206,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         return Vector<float>.Build.Dense(predictions);
     }
 
-    private void ForwardProp()
+    private void ForwardProp(Matrix<float> input)
     {
         Parallel.For(0, dataSet.dataNum, i =>
         {
-            A1Total.SetColumn(i, W1.LeftMultiply(dataSet.images.Column(i)) + B1);
+            A1Total.SetColumn(i, W1.LeftMultiply(input.Column(i)) + B1);
         });
         A1 = ReLU(A1Total);
 
-        Parallel.For(0, dataSet.dataNum, i =>
+        Parallel.For(0, input.ColumnCount, i =>
         {
             A2Total.SetColumn(i, W2.LeftMultiply(A1.Column(i)) + B2);
         });
@@ -331,5 +348,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         complete = true;
         trainingThread.Interrupt();
         trainingThread.Join();
+        testingThread.Interrupt();
+        testingThread.Join();
     }
 }
