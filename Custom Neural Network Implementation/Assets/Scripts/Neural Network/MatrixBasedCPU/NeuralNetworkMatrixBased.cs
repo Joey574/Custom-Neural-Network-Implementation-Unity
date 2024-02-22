@@ -216,15 +216,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             }
         });
 
-        dB1 = 1 / dataSet.dataNum * dZ1.RowSums();
-        dB2 = 1 / dataSet.dataNum * dZ2.RowSums();
+        dB1 = (1.0f / (float)dataSet.dataNum) * dZ1.RowSums();
+        dB2 = (1.0f / (float)dataSet.dataNum) * dZ2.RowSums();
 
         Parallel.For(0, hiddenSize, i =>
         {
             for (int j = 0; j < inputSize; j++)
             {
-                dW1[j, i] = (1 / dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
-                UnityEngine.Debug.Log("Dw1: " + dW1[j, i] + " :: Dot Product: " + dZ1.Row(i).DotProduct(dataSet.images.Row(j)));
+                dW1[j, i] = (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
+                //UnityEngine.Debug.Log("Dw1: " + dW1[j, i] + " :: Dot Product: " + dZ1.Row(i).DotProduct(dataSet.images.Row(j)) + " :: 1 / dataset: " + (1.0f / (float)dataSet.dataNum) + " :: Final: " + (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j)));
             }
         });
 
@@ -233,7 +233,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             for (int j = 0; j < hiddenSize; j++)
             {
-                dW2[j, i] = 1 / dataSet.dataNum * dZ2.Row(i).DotProduct(A1.Row(j));
+                dW2[j, i] = (1.0f / (float)dataSet.dataNum) * dZ2.Row(i).DotProduct(A1.Row(j));
             }
         });
     }
