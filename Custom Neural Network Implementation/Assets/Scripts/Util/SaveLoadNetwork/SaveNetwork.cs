@@ -6,9 +6,9 @@ using System.IO;
 
 public class SaveNetwork
 {
-   public void SaveNeuralNetwork(List<Matrix<float>> weights, List<Vector<float>> biases)
+   public void SaveNeuralNetwork(List<Matrix<float>> weights, List<Vector<float>> biases, string name)
     {
-        using (StreamWriter sw = new StreamWriter("Assets\\Network.txt"))
+        using (StreamWriter sw = new StreamWriter("Assets\\SavedNetworks\\" + name + ".txt"))
         {
             sw.Write("$");
 

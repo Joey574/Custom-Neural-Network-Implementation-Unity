@@ -10,6 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Diagnostics;
+using UnityEngine.UIElements;
+using Unity.VisualScripting.Antlr3.Runtime;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -21,10 +23,16 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     public float learningRate;
     public int iterations;
 
+    [Header("Status")]
     public bool started = false;
     public bool initialized = false;
     public bool complete = false;
     public bool testingComplete = false;
+
+    [Header("Save Data")]
+    public bool SaveOnExit;
+    public string SaveName;
+    public string LoadName;
 
     [Header("Input data")]
     private LoadImage dataSet;
@@ -93,7 +101,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 B2
             };
 
-            saveNetwork.SaveNeuralNetwork(weights, biases);
+            saveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
         }
 
         if (testingComplete)
@@ -159,7 +167,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         UnityEngine.Debug.Log("B1 Size: " + B1.Count);
         UnityEngine.Debug.Log("B2 Size: " + B2.Count);
 
-        UnityEngine.Debug.Log("Total Connections: " + ((W1.RowCount * W1.ColumnCount) + (W2.RowCount * W2.ColumnCount) + B1.Count + B2.Count));
+        int connections = (W1.RowCount * W1.ColumnCount) + (W2.RowCount * W2.ColumnCount) + B1.Count + B2.Count;
+
+        UnityEngine.Debug.Log("Total Connections: " + connections);
+        UnityEngine.Debug.Log("Predicted Size of File: " + (((sizeof(float) * connections) + connections) * 2) / 1000000.0f + "mb");
         UnityEngine.Debug.Log("INITIALIZATION COMPLETE");
         initialized = true;
     }
@@ -370,6 +381,25 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (!complete && SaveOnExit)
+        {
+            SaveNetwork saveNetwork = new SaveNetwork();
+
+            List<Matrix<float>> weights = new List<Matrix<float>>
+            {
+                W1,
+                W2
+            };
+
+            List<Vector<float>> biases = new List<Vector<float>>
+            {
+                B1,
+                B2
+            };
+
+            saveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+        }
+
         complete = true;
         trainingThread.Interrupt();
         trainingThread.Join();

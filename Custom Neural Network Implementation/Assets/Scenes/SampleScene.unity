@@ -269,6 +269,9 @@ MonoBehaviour:
   initialized: 0
   complete: 0
   testingComplete: 0
+  SaveOnExit: 1
+  SaveName: 128FullSetTraining
+  LoadName: 
 --- !u!114 &656604486
 MonoBehaviour:
   m_ObjectHideFlags: 0
