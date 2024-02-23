@@ -78,6 +78,22 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             trainingThread.Join();
             testingThread = new Thread(TestNetwork);
             testingThread.Start();
+
+            SaveNetwork saveNetwork = new SaveNetwork();
+
+            List<Matrix<float>> weights = new List<Matrix<float>>
+            {
+                W1,
+                W2
+            };
+
+            List<Vector<float>> biases = new List<Vector<float>>
+            {
+                B1,
+                B2
+            };
+
+            saveNetwork.SaveNeuralNetwork(weights, biases);
         }
 
         if (testingComplete)
@@ -175,6 +191,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void TestNetwork()
     {
+        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSet.TestingImages.ColumnCount);
+        A1Total = Matrix<float>.Build.Dense(A1.RowCount, A1.ColumnCount);
+
+        A2 = Matrix<float>.Build.Dense(outputSize, dataSet.TestingImages.ColumnCount);
+        A2Total = Matrix<float>.Build.Dense(A2.RowCount, A2.ColumnCount);
+
+        dZ1 = Matrix<float>.Build.Dense(A1Total.RowCount, A1Total.ColumnCount);
+        dZ2 = Matrix<float>.Build.Dense(A2Total.RowCount, A2Total.ColumnCount);
+
         ForwardProp(dataSet.TestingImages);
         UnityEngine.Debug.Log("Final Accuracy: " + Accuracy(Predictions(dataSet.TestingImages.ColumnCount), dataSet.TestingLabels));
         testingComplete = true;
@@ -191,7 +216,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 correct++;
             }
         }
-        return correct / dataSet.dataNum;
+        return correct / predictions.Count;
     }
 
     private Vector<float> Predictions(int len)
@@ -208,7 +233,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void ForwardProp(Matrix<float> input)
     {
-        Parallel.For(0, dataSet.dataNum, i =>
+        Parallel.For(0, input.ColumnCount, i =>
         {
             A1Total.SetColumn(i, W1.LeftMultiply(input.Column(i)) + B1);
         });

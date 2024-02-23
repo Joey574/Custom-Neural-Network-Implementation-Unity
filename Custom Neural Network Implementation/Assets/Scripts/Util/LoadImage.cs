@@ -54,7 +54,7 @@ public class LoadImage : MonoBehaviour
         int height = ReadBigInt32(reader);
 
         magicNum = ReadBigInt32(TestingReader);
-        int testingNum = ReadBigInt32(TestingReader); // discard number, not needed
+        int testingNum = ReadBigInt32(TestingReader);
         ReadBigInt32(TestingReader); // width x height should be the same
         ReadBigInt32(TestingReader);
 
@@ -65,7 +65,7 @@ public class LoadImage : MonoBehaviour
         ReadBigInt32(TestingLabelReader);
 
         images = Matrix<float>.Build.Dense(width * height, dataNum);
-        TestingImages = Matrix<float>.Build.Dense(width * height, dataNum);
+        TestingImages = Matrix<float>.Build.Dense(width * height, testingNum);
 
         labels = new List<int>();
         TestingLabels = new List<int>();
