@@ -4,9 +4,9 @@ using UnityEngine;
 using MathNet.Numerics.LinearAlgebra;
 using System.IO;
 
-public class SaveNetwork
+public static class SaveNetwork
 {
-   public void SaveNeuralNetwork(List<Matrix<float>> weights, List<Vector<float>> biases, string name)
+   public static void SaveNeuralNetwork(List<Matrix<float>> weights, List<Vector<float>> biases, string name)
     {
         using (StreamWriter sw = new StreamWriter("Assets\\SavedNetworks\\" + name + ".txt"))
         {

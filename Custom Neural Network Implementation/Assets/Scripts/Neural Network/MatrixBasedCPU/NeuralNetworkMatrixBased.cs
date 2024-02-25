@@ -80,21 +80,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             if (Save)
             {
-                SaveNetwork saveNetwork = new SaveNetwork();
-
-                List<Matrix<float>> weights = new List<Matrix<float>>
-            {
-                W1,
-                W2
-            };
-
-                List<Vector<float>> biases = new List<Vector<float>>
-            {
-                B1,
-                B2
-            };
-
-                saveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+                SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
             }
         }
 
@@ -106,7 +92,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void InitializeNetwork()
     {
-
         // Biases
         for (int i = 0; i < hiddenSize.Count; i++)
         {
@@ -114,23 +99,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
 
         biases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-
-        for (int i = 0; i < biases.Count; i++)
-        {
-            dBiases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[biases[i].Count], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-        }
-
-
-        // Values
-        for (int i = 0; i < hiddenSize.Count; i++)
-        {
-            A.Add(Matrix<float>.Build.Dense(hiddenSize[i], dataSet.dataNum, Array.ConvertAll(new float[A[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-            ATotal.Add(Matrix<float>.Build.Dense(A[i].RowCount, A[i].ColumnCount, Array.ConvertAll(new float[ATotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-        }
-
-        A.Add(Matrix<float>.Build.Dense(outputSize, dataSet.dataNum, Array.ConvertAll(new float[outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-        ATotal.Add(Matrix<float>.Build.Dense(A[A.Count - 1].RowCount, A[A.Count - 1].ColumnCount, Array.ConvertAll(new float[A[A.Count - 1].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-
 
         // Weights
         weights.Add(Matrix<float>.Build.Dense(inputSize, hiddenSize[0], Array.ConvertAll(new float[inputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
@@ -142,18 +110,18 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         weights.Add(Matrix<float>.Build.Dense(hiddenSize[hiddenSize.Count - 1], outputSize, Array.ConvertAll(new float[hiddenSize[hiddenSize.Count - 1]], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
 
-
         // Derivatives
         for (int i = 0; i < weights.Count; i++)
         {
             dWeights.Add(Matrix<float>.Build.Dense(weights[i].RowCount, weights[i].ColumnCount, Array.ConvertAll(new float[dWeights[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
         }
 
-        for (int i = 0; i < ATotal.Count; i++)
+        for (int i = 0; i < biases.Count; i++)
         {
-            dTotal.Add(Matrix<float>.Build.Dense(ATotal[i].RowCount, ATotal[i].ColumnCount, Array.ConvertAll(new float[dTotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            dBiases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[biases[i].Count], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
         }
 
+        InitializeResultMatrices(dataSet.dataNum);
 
         // Display
         int connections = 0;
@@ -174,6 +142,25 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         UnityEngine.Debug.Log("Predicted Size of File: " + (((sizeof(float) * connections) + connections) * 2) / 1000000.0f + "mb");
         UnityEngine.Debug.Log("INITIALIZATION COMPLETE");
         initialized = true;
+    }
+
+    private void InitializeResultMatrices(int size)
+    {
+        // Values
+        for (int i = 0; i < hiddenSize.Count; i++)
+        {
+            A.Add(Matrix<float>.Build.Dense(hiddenSize[i], size, Array.ConvertAll(new float[A[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            ATotal.Add(Matrix<float>.Build.Dense(A[i].RowCount, A[i].ColumnCount, Array.ConvertAll(new float[ATotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+        }
+
+        A.Add(Matrix<float>.Build.Dense(outputSize, size, Array.ConvertAll(new float[outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+        ATotal.Add(Matrix<float>.Build.Dense(A[A.Count - 1].RowCount, A[A.Count - 1].ColumnCount, Array.ConvertAll(new float[A[A.Count - 1].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+
+        // Derivatives
+        for (int i = 0; i < ATotal.Count; i++)
+        {
+            dTotal.Add(Matrix<float>.Build.Dense(ATotal[i].RowCount, ATotal[i].ColumnCount, Array.ConvertAll(new float[dTotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+        }
     }
 
     private void TrainNetwork()
@@ -203,14 +190,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void TestNetwork()
     {
-        A1 = Matrix<float>.Build.Dense(hiddenSize, dataSet.TestingImages.ColumnCount);
-        A1Total = Matrix<float>.Build.Dense(A1.RowCount, A1.ColumnCount);
-
-        A2 = Matrix<float>.Build.Dense(outputSize, dataSet.TestingImages.ColumnCount);
-        A2Total = Matrix<float>.Build.Dense(A2.RowCount, A2.ColumnCount);
-
-        dZ1 = Matrix<float>.Build.Dense(A1Total.RowCount, A1Total.ColumnCount);
-        dZ2 = Matrix<float>.Build.Dense(A2Total.RowCount, A2Total.ColumnCount);
+        InitializeResultMatrices(dataSet.TestingImages.ColumnCount);
 
         ForwardProp(dataSet.TestingImages);
         UnityEngine.Debug.Log("Final Accuracy: " + Accuracy(Predictions(dataSet.TestingImages.ColumnCount), dataSet.TestingLabels));
@@ -237,7 +217,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         for (int i = 0; i < len; i++)
         {
-            predictions[i] = A2.Column(i).MaximumIndex();
+            predictions[i] = A[A.Count - 1].Column(i).MaximumIndex();
         }
 
         return Vector<float>.Build.Dense(predictions);
@@ -257,7 +237,9 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void BackwardProp()
     {
-        dZ2 = A2 - dataSet.Y;
+        dTotal[dTotal.Count - 1] = ATotal[ATotal.Count - 1] - dataSet.Y;
+
+        //dZ2 = A2 - dataSet.Y;
 
         Parallel.For(0, dataSet.dataNum, i =>
         {
@@ -267,8 +249,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             }
         });
 
-        dB1 = (1.0f / (float)dataSet.dataNum) * dZ1.RowSums();
-        dB2 = (1.0f / (float)dataSet.dataNum) * dZ2.RowSums();
+        Parallel.For(0, biases.Count, i =>
+        {
+            dBiases[i] = (1.0f / (float)dataSet.dataNum) * dTotal[i].RowSums();
+        });
 
         Parallel.For(0, hiddenSize, i =>
         {
@@ -277,7 +261,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 dW1[j, i] = (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
             }
         });
-
 
         Parallel.For(0, outputSize, i =>
         {
@@ -290,17 +273,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void UpdateNetwork()
     {
-        //UnityEngine.Debug.Log("Prior weight: " + W1[0, 0]);
-        //UnityEngine.Debug.Log("Deriv: " + dW1[0, 0]);
-        //UnityEngine.Debug.Log("Predicted after: " + (W1[0,0] - (learningRate * dW1[0, 0])));
+        for (int i = 0; i < weights.Count; i++)
+        {
+            weights[i] = weights[i] - learningRate * dWeights[i];
+        }
 
-        W1 = W1 - learningRate * dW1;
-        W2 = W2 - learningRate * dW2;
-
-        //UnityEngine.Debug.Log("After: " + W1[0, 0]);
-
-        B1 -= dB1.Multiply(learningRate);
-        B2 -= dB2.Multiply(learningRate);
+        for (int i = 0; i < biases.Count; i++)
+        {
+            biases[i] -= dBiases[i].Multiply(learningRate);
+        }
     }
 
     private Matrix<float> Softmax(Matrix<float> A)
@@ -380,21 +361,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         if (!complete && Save)
         {
-            SaveNetwork saveNetwork = new SaveNetwork();
-
-            List<Matrix<float>> weights = new List<Matrix<float>>
-            {
-                W1,
-                W2
-            };
-
-            List<Vector<float>> biases = new List<Vector<float>>
-            {
-                B1,
-                B2
-            };
-
-            saveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+            SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
         }
 
         complete = true;
