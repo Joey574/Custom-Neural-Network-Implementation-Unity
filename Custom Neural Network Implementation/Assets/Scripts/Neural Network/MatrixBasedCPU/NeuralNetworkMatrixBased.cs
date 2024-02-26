@@ -250,15 +250,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private void BackwardProp()
     {
         dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
-        //Parallel.For(0, dTotal.Count - 1, i =>
-        //{
-        //    Parallel.For(0, dTotal[i].ColumnCount, x =>
-        //    {
-        //        dTotal[i].SetColumn(x, weights[i + 1].LeftMultiply(dTotal[i  + 1].Column(x)) * ReLUDerivative(ATotal[i].Column(x)).Sum());
-        //    });
-        //});
 
-        for (int x = 0; x < dTotal.Count - 1; x++)
+        for (int x = dTotal.Count - 2; x > 0; x--)
         {
             Parallel.For(0, dataSet.dataNum, i =>
             {
@@ -269,11 +262,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             });
         }
 
-        //Parallel.For(0, dWeights[0].ColumnCount, i =>
-        //{
-        //    dWeights[0].SetColumn(i, (1.0f / (float)dataSet.dataNum) * (dTotal[0].Column(i).PointwiseMultiply(dataSet.images.Column(i))));
-        //});
-
         Parallel.For(0, hiddenSize[0], i =>
         {
             for (int j = 0; j < inputSize; j++)
@@ -282,35 +270,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             }
         });
 
-        //Parallel.For(1, dWeights.Count - 1, i =>
-        //{
-        //    for (int c = 0; c < dWeights[i].ColumnCount; c++)
-        //    {
-        //        for (int r = 0; r < dWeights[i].RowCount; r++)
-        //        {
-
-        //        }
-        //        dWeights[i] = (1.0f / (float)dataSet.dataNum) * (dTotal[i] * A[i - 1]);
-        //    }
-        //});
-
-        Parallel.For(1, dWeights.Count - 1, x =>
+        Parallel.For(1, dWeights.Count, x =>
         {
-            Parallel.For(0, hiddenSize[x], i =>
+            Parallel.For(0, dWeights[x].ColumnCount, i =>
             {
-                for (int j = 0; j < hiddenSize[x - 1]; j++)
+                for (int j = 0; j < dWeights[x - 1].ColumnCount; j++)
                 {
                     dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(A[x - 1].Row(j));
                 }
             });
-        });
-
-        Parallel.For(0, outputSize, i =>
-        {
-            for (int j = 0; j < hiddenSize[hiddenSize.Count - 1]; j++)
-            {
-                dWeights[dWeights.Count - 1][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[dTotal.Count - 1].Row(i).DotProduct(A[A.Count - 2].Row(j));
-            }
         });
 
         Parallel.For(0, biases.Count, i =>
