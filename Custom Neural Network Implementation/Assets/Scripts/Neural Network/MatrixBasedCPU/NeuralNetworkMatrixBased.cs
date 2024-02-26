@@ -205,13 +205,13 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         float correct = 0;
 
-        for (int i = 0; i < predictions.Count; i++)
+        Parallel.For(0, predictions.Count, i =>
         {
-            if (predictions[i].AlmostEqual(labels[i], 0.1))
+            if (predictions[i].AlmostEqual(labels[i], 0.01))
             {
                 correct++;
             }
-        }
+        });
         return correct / predictions.Count;
     }
 
@@ -219,10 +219,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         float[] predictions = new float[len];
 
-        for (int i = 0; i < len; i++)
+        Parallel.For(0, len, i =>
         {
             predictions[i] = A[A.Count - 1].Column(i).MaximumIndex();
-        }
+        });
 
         return Vector<float>.Build.Dense(predictions);
     }
@@ -343,7 +343,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Matrix<float> ReLU(Matrix<float> A) 
     {
-        return A.Map(x => x > 1.0f ? 1.0f : x < 0 ? 0.0f : x);
+        return A.Map(x => x < 0 ? 0.0f : x);
     }
 
     private float ReLU(float A)
@@ -380,7 +380,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private float ReLUDerivative(float A)
     {
-        return A > 0 ? 1 : 0;
+        return A > 0.0f ? 1.0f : 0.0f;
     }
 
     private void OnDestroy()
