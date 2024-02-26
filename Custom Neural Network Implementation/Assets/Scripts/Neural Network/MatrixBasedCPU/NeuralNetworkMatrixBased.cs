@@ -328,6 +328,9 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         //    }
         //});
 
+        //dB1 = (1.0f / (float)dataSet.dataNum) * dZ1.RowSums();
+        //dB2 = (1.0f / (float)dataSet.dataNum) * dZ2.RowSums();
+
         //Parallel.For(0, hiddenSize, i =>
         //{
         //    for (int j = 0; j < inputSize; j++)
