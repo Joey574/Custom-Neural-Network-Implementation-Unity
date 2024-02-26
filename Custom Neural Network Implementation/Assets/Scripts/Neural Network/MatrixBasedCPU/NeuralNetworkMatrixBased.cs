@@ -250,15 +250,67 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private void BackwardProp()
     {
         dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
-        Parallel.For(0, dTotal.Count - 1, i =>
+        //Parallel.For(0, dTotal.Count - 1, i =>
+        //{
+        //    Parallel.For(0, dTotal[i].ColumnCount, x =>
+        //    {
+        //        dTotal[i].SetColumn(x, weights[i + 1].LeftMultiply(dTotal[i  + 1].Column(x)) * ReLUDerivative(ATotal[i].Column(x)).Sum());
+        //    });
+        //});
+
+        for (int x = 0; x < dTotal.Count - 1; x++)
         {
-            dTotal[i] = (weights[i + 1] * dTotal[dTotal.Count - 1]) * ReLUDerivative(ATotal[i]);
+            Parallel.For(0, dataSet.dataNum, i =>
+            {
+                for (int j = 0; j < hiddenSize[x]; j++)
+                {
+                    dTotal[x][j, i] = weights[x + 1].Row(j).DotProduct(dTotal[x + 1].Column(i)) * ReLUDerivative(ATotal[x][j, i]);
+                }
+            });
+        }
+
+        //Parallel.For(0, dWeights[0].ColumnCount, i =>
+        //{
+        //    dWeights[0].SetColumn(i, (1.0f / (float)dataSet.dataNum) * (dTotal[0].Column(i).PointwiseMultiply(dataSet.images.Column(i))));
+        //});
+
+        Parallel.For(0, hiddenSize[0], i =>
+        {
+            for (int j = 0; j < inputSize; j++)
+            {
+                dWeights[0][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[0].Row(i).DotProduct(dataSet.images.Row(j));
+            }
         });
 
-        dWeights[0] = (1.0f / (float)dataSet.dataNum) * (dTotal[0] * dataSet.images);
-        Parallel.For(1, dWeights.Count, i =>
+        //Parallel.For(1, dWeights.Count - 1, i =>
+        //{
+        //    for (int c = 0; c < dWeights[i].ColumnCount; c++)
+        //    {
+        //        for (int r = 0; r < dWeights[i].RowCount; r++)
+        //        {
+
+        //        }
+        //        dWeights[i] = (1.0f / (float)dataSet.dataNum) * (dTotal[i] * A[i - 1]);
+        //    }
+        //});
+
+        Parallel.For(1, dWeights.Count - 1, x =>
         {
-            dWeights[i] = (1.0f / (float)dataSet.dataNum) * (dTotal[i] * A[i - 1]);
+            Parallel.For(0, hiddenSize[x], i =>
+            {
+                for (int j = 0; j < hiddenSize[x - 1]; j++)
+                {
+                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(A[x - 1].Row(j));
+                }
+            });
+        });
+
+        Parallel.For(0, outputSize, i =>
+        {
+            for (int j = 0; j < hiddenSize[hiddenSize.Count - 1]; j++)
+            {
+                dWeights[dWeights.Count - 1][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[dTotal.Count - 1].Row(i).DotProduct(A[A.Count - 2].Row(j));
+            }
         });
 
         Parallel.For(0, biases.Count, i =>
@@ -388,6 +440,18 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
 
         return matrix;
+    }
+
+    private Vector<float> ReLUDerivative(Vector<float> A)
+    {
+        Vector<float> result = Vector<float>.Build.Dense(A.Count);
+
+        for (int i = 0; i < A.Count; i++)
+        {
+            result[i] = A[i] > 0 ? 1.0f : 0;
+        }
+
+        return result;
     }
 
     private float ReLUDerivative(float A)
