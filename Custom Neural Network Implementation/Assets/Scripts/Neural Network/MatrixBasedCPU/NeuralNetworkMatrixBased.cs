@@ -1,18 +1,11 @@
-using System.Linq;
 using UnityEngine;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
-using Unity.VisualScripting;
 using System;
 using System.Collections.Generic;
-using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reflection;
 using System.Diagnostics;
-using UnityEngine.UIElements;
-using Unity.VisualScripting.Antlr3.Runtime;
-using Unity.Mathematics;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -44,6 +37,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Thread trainingThread;
     private Thread testingThread;
+    private Thread saveThread;
 
     [Header("Neural Net Outputs")]
     private List<Matrix<float>> A;
@@ -80,7 +74,11 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             if (Save)
             {
-                SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+                saveThread = new Thread(() =>
+                {
+                    SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+                });
+                saveThread.Start();
             }
         }
 
@@ -235,23 +233,23 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             ATotal[0].SetColumn(i, weights[0].LeftMultiply(input.Column(i)) + biases[0]);
         });
-        A[0] =ReLU(ATotal[0]);
+        A[0] = ReLU(ATotal[0]);
 
-        for (int x = 1; x < A.Count; x++)
+        Parallel.For(1, A.Count, x =>
         {
             Parallel.For(0, input.ColumnCount, i =>
             {
                 ATotal[x].SetColumn(i, weights[x].LeftMultiply(A[x - 1].Column(i)) + biases[x]);
             });
             A[x] = x < A.Count - 1 ? ReLU(ATotal[x]) : Softmax(ATotal[x]);
-        }
+        });
     }
 
     private void BackwardProp()
     {
         dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
 
-        for (int x = dTotal.Count - 2; x > 0; x--)
+        for (int x = dTotal.Count - 2; x >= 0; x--)
         {
             Parallel.For(0, dataSet.dataNum, i =>
             {
@@ -262,21 +260,13 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             });
         }
 
-        Parallel.For(0, hiddenSize[0], i =>
-        {
-            for (int j = 0; j < inputSize; j++)
-            {
-                dWeights[0][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[0].Row(i).DotProduct(dataSet.images.Row(j));
-            }
-        });
-
-        Parallel.For(1, dWeights.Count, x =>
+        Parallel.For(0, dWeights.Count, x =>
         {
             Parallel.For(0, dWeights[x].ColumnCount, i =>
             {
-                for (int j = 0; j < dWeights[x - 1].ColumnCount; j++)
+                for (int j = 0; j < dWeights[x].RowCount; j++)
                 {
-                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(A[x - 1].Row(j));
+                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct( x > 0 ? A[x - 1].Row(j) : dataSet.images.Row(j));
                 }
             });
         });
@@ -351,46 +341,9 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         return softmax;
     }
 
-    private Matrix<float> Sigmoid(Matrix<float> x)
-    {
-        for (int c = 0; c < x.ColumnCount; c++)
-        {
-            for (int r = 0; r < x.RowCount; r++)
-            {
-                x[r, c] = 1 / (1 + Mathf.Exp(-x[r, c]));
-            }
-        }
-        return x;
-    }
-
-    private float Sigmoid(float x)
-    {
-        return 1 / (1 + Mathf.Exp(-x));
-    }
-
-    private Matrix<float> SigmoidDerivative(Matrix<float> A)
-    {
-        return Sigmoid(A) * (1 - Sigmoid(A));
-    }
-
-    private float SigmoidDerivative(float A)
-    {
-        return Sigmoid(A) * (1 - Sigmoid(A));
-    }
-
     private Matrix<float> ReLU(Matrix<float> A) 
     {
-        Matrix<float> result = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
-
-        for (int c = 0; c <  A.ColumnCount; c++)
-        {
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                result[r, c] = A[r, c] > 1.0f ? 1.0f : A[r, c] < 0 ? 0.0f : A[r, c];
-            }
-        }
-
-        return result;
+        return A.Map(x => x > 1.0f ? 1.0f : x < 0 ? 0.0f : x);
     }
 
     private float ReLU(float A)
@@ -434,13 +387,27 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         if (!complete && Save)
         {
-            SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+            saveThread = new Thread(() =>
+            {
+                SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+            });
+            saveThread.Start();
         }
 
         complete = true;
-        trainingThread.Interrupt();
+        trainingThread.Abort();
         trainingThread.Join();
-        testingThread.Interrupt();
+        testingThread.Abort();
         testingThread.Join();
+
+        saveThread.Join();
+    }
+
+    private void OnGUI()
+    {
+        GUIStyle style = new GUIStyle(GUI.skin.label);
+        style.fontSize = 18;
+
+        //GUI.Label(new Rect())
     }
 }

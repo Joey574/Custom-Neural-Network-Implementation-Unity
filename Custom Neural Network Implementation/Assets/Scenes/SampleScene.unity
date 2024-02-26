@@ -159,7 +159,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -262,14 +262,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputSize: 784
   outputSize: 10
-  hiddenSize: 8000000000010000
-  learningRate: 0.01
-  iterations: 1000
+  hiddenSize: 80000000
+  learningRate: 0.1
+  iterations: 500
   started: 0
   initialized: 0
   complete: 0
   testingComplete: 0
-  Save: 1
+  Save: 0
   SaveName: 128_256FullSetTraining
   LoadName: 
 --- !u!114 &656604486
@@ -285,7 +285,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   labels: 
-  dataNum: 300
+  dataNum: 100
   ImagesLoaded: 0
   TestingLabels: 
 --- !u!1660057539 &9223372036854775807
