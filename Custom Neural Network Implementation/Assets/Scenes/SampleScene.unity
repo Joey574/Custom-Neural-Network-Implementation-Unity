@@ -261,8 +261,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inputSize: 784
-  hiddenSize: 1
   outputSize: 10
+  hiddenSize: 80000000
   learningRate: 0.1
   iterations: 500
   started: 0

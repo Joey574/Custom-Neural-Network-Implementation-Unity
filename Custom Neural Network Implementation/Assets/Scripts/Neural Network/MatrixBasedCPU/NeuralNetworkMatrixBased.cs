@@ -92,33 +92,35 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void InitializeNetwork()
     {
+        biases = new List<Vector<float>>();
+        dBiases = new List<Vector<float>>();
+        weights = new List<Matrix<float>>();
+        dWeights = new List<Matrix<float>>();
+
         // Biases
         for (int i = 0; i < hiddenSize.Count; i++)
         {
             biases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[hiddenSize[i]], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
         }
-
         biases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
 
         // Weights
-        weights.Add(Matrix<float>.Build.Dense(inputSize, hiddenSize[0], Array.ConvertAll(new float[inputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-
+        weights.Add(Matrix<float>.Build.Dense(inputSize, hiddenSize[0], Array.ConvertAll(new float[inputSize * hiddenSize[0]], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
         for (int i = 0; i < hiddenSize.Count - 1; i++)
         {
-            weights.Add(Matrix<float>.Build.Dense(hiddenSize[i], hiddenSize[i] + 1, Array.ConvertAll(new float[weights[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            weights.Add(Matrix<float>.Build.Dense(hiddenSize[i], hiddenSize[i + 1], Array.ConvertAll(new float[hiddenSize[i] * hiddenSize[i + 1]], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
         }
-
-        weights.Add(Matrix<float>.Build.Dense(hiddenSize[hiddenSize.Count - 1], outputSize, Array.ConvertAll(new float[hiddenSize[hiddenSize.Count - 1]], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+        weights.Add(Matrix<float>.Build.Dense(hiddenSize[hiddenSize.Count - 1], outputSize, Array.ConvertAll(new float[hiddenSize[hiddenSize.Count - 1] * outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
 
         // Derivatives
         for (int i = 0; i < weights.Count; i++)
         {
-            dWeights.Add(Matrix<float>.Build.Dense(weights[i].RowCount, weights[i].ColumnCount, Array.ConvertAll(new float[dWeights[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            dWeights.Add(Matrix<float>.Build.Dense(weights[i].RowCount, weights[i].ColumnCount));
         }
 
         for (int i = 0; i < biases.Count; i++)
         {
-            dBiases.Add(Vector<float>.Build.Dense(Array.ConvertAll(new float[biases[i].Count], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            dBiases.Add(Vector<float>.Build.Dense(biases[i].Count));
         }
 
         InitializeResultMatrices(dataSet.dataNum);
@@ -146,20 +148,24 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void InitializeResultMatrices(int size)
     {
+        A = new List<Matrix<float>>();
+        ATotal = new List<Matrix<float>>();
+        dTotal = new List<Matrix<float>>();
+
         // Values
         for (int i = 0; i < hiddenSize.Count; i++)
         {
-            A.Add(Matrix<float>.Build.Dense(hiddenSize[i], size, Array.ConvertAll(new float[A[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-            ATotal.Add(Matrix<float>.Build.Dense(A[i].RowCount, A[i].ColumnCount, Array.ConvertAll(new float[ATotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            A.Add(Matrix<float>.Build.Dense(hiddenSize[i], size));
+            ATotal.Add(Matrix<float>.Build.Dense(A[i].RowCount, A[i].ColumnCount));
         }
 
-        A.Add(Matrix<float>.Build.Dense(outputSize, size, Array.ConvertAll(new float[outputSize], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
-        ATotal.Add(Matrix<float>.Build.Dense(A[A.Count - 1].RowCount, A[A.Count - 1].ColumnCount, Array.ConvertAll(new float[A[A.Count - 1].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+        A.Add(Matrix<float>.Build.Dense(outputSize, size));
+        ATotal.Add(Matrix<float>.Build.Dense(A[A.Count - 1].RowCount, A[A.Count - 1].ColumnCount));
 
         // Derivatives
         for (int i = 0; i < ATotal.Count; i++)
         {
-            dTotal.Add(Matrix<float>.Build.Dense(ATotal[i].RowCount, ATotal[i].ColumnCount, Array.ConvertAll(new float[dTotal[i].RowCount], _ => UnityEngine.Random.Range(-0.5f, 0.5f))));
+            dTotal.Add(Matrix<float>.Build.Dense(ATotal[i].RowCount, ATotal[i].ColumnCount));
         }
     }
 
@@ -225,11 +231,17 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void ForwardProp(Matrix<float> input)
     {
-        for (int x = 0; x < A.Count; x++)
+        Parallel.For(0, input.ColumnCount, i =>
+        {
+            ATotal[0].SetColumn(i, weights[0].LeftMultiply(input.Column(i)) + biases[0]);
+        });
+        A[0] =ReLU(ATotal[0]);
+
+        for (int x = 1; x < A.Count; x++)
         {
             Parallel.For(0, input.ColumnCount, i =>
             {
-                ATotal[x].SetColumn(i, weights[x].LeftMultiply(input.Column(i)) + biases[x]);
+                ATotal[x].SetColumn(i, weights[x].LeftMultiply(A[x - 1].Column(i)) + biases[x]);
             });
             A[x] = x < A.Count - 1 ? ReLU(ATotal[x]) : Softmax(ATotal[x]);
         }
@@ -237,16 +249,16 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void BackwardProp()
     {
-        dTotal[dTotal.Count - 1] = ATotal[ATotal.Count - 1] - dataSet.Y;
-
-        //dZ2 = A2 - dataSet.Y;
-
-        Parallel.For(0, dataSet.dataNum, i =>
+        dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
+        Parallel.For(0, dTotal.Count - 1, i =>
         {
-            for (int j = 0; j < hiddenSize; j++)
-            {
-                dZ1[j, i] = W2.Row(j).DotProduct(dZ2.Column(i)) * ReLUDerivative(A1Total[j, i]);
-            }
+            dTotal[i] = (weights[i + 1] * dTotal[dTotal.Count - 1]) * ReLUDerivative(ATotal[i]);
+        });
+
+        dWeights[0] = (1.0f / (float)dataSet.dataNum) * (dTotal[0] * dataSet.images);
+        Parallel.For(1, dWeights.Count, i =>
+        {
+            dWeights[i] = (1.0f / (float)dataSet.dataNum) * (dTotal[i] * A[i - 1]);
         });
 
         Parallel.For(0, biases.Count, i =>
@@ -254,34 +266,45 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             dBiases[i] = (1.0f / (float)dataSet.dataNum) * dTotal[i].RowSums();
         });
 
-        Parallel.For(0, hiddenSize, i =>
-        {
-            for (int j = 0; j < inputSize; j++)
-            {
-                dW1[j, i] = (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
-            }
-        });
+        //dZ2 = A2 - dataSet.Y;
 
-        Parallel.For(0, outputSize, i =>
-        {
-            for (int j = 0; j < hiddenSize; j++)
-            {
-                dW2[j, i] = (1.0f / (float)dataSet.dataNum) * dZ2.Row(i).DotProduct(A1.Row(j));
-            }
-        });
+        //Parallel.For(0, dataSet.dataNum, i =>
+        //{
+        //    for (int j = 0; j < hiddenSize; j++)
+        //    {
+        //        dZ1[j, i] = W2.Row(j).DotProduct(dZ2.Column(i)) * ReLUDerivative(A1Total[j, i]);
+        //    }
+        //});
+
+        //Parallel.For(0, hiddenSize, i =>
+        //{
+        //    for (int j = 0; j < inputSize; j++)
+        //    {
+        //        dW1[j, i] = (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
+        //    }
+        //});
+
+        //Parallel.For(0, outputSize, i =>
+        //{
+        //    for (int j = 0; j < hiddenSize; j++)
+        //    {
+        //        dW2[j, i] = (1.0f / (float)dataSet.dataNum) * dZ2.Row(i).DotProduct(A1.Row(j));
+        //    }
+        //});
     }
 
     private void UpdateNetwork()
     {
-        for (int i = 0; i < weights.Count; i++)
+        Parallel.For(0, weights.Count, i =>
         {
             weights[i] = weights[i] - learningRate * dWeights[i];
-        }
 
-        for (int i = 0; i < biases.Count; i++)
+        });
+
+        Parallel.For(0, weights.Count, i =>
         {
             biases[i] -= dBiases[i].Multiply(learningRate);
-        }
+        });
     }
 
     private Matrix<float> Softmax(Matrix<float> A)
@@ -322,39 +345,54 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         return 1 / (1 + Mathf.Exp(-x));
     }
 
-    private Matrix<float> SigmoidDerivative(Matrix<float> ATotal)
+    private Matrix<float> SigmoidDerivative(Matrix<float> A)
     {
-        return Sigmoid(ATotal) * (1 - Sigmoid(ATotal));
+        return Sigmoid(A) * (1 - Sigmoid(A));
     }
 
-    private float SigmoidDerivative(float ATotal)
+    private float SigmoidDerivative(float A)
     {
-        return Sigmoid(ATotal) * (1 - Sigmoid(ATotal));
+        return Sigmoid(A) * (1 - Sigmoid(A));
     }
 
-    private Matrix<float> ReLU(Matrix<float> ATotal) 
+    private Matrix<float> ReLU(Matrix<float> A) 
     {
-        Matrix<float> result = Matrix<float>.Build.Dense(ATotal.RowCount, ATotal.ColumnCount);
+        Matrix<float> result = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
 
-        for (int c = 0; c <  ATotal.ColumnCount; c++)
+        for (int c = 0; c <  A.ColumnCount; c++)
         {
-            for (int r = 0; r < ATotal.RowCount; r++)
+            for (int r = 0; r < A.RowCount; r++)
             {
-                result[r, c] = ATotal[r, c] > 1.0f ? 1.0f : ATotal[r, c] < 0 ? 0.0f : ATotal[r, c];
+                result[r, c] = A[r, c] > 1.0f ? 1.0f : A[r, c] < 0 ? 0.0f : A[r, c];
             }
         }
 
         return result;
     }
 
-    private float ReLU(float ATotal)
+    private float ReLU(float A)
     {
-        return ATotal > 1 ? 1.0f : ATotal < 0 ? 0.0f : ATotal;
+        return A > 1 ? 1.0f : A < 0 ? 0.0f : A;
     }
 
-    private float ReLUDerivative(float ATotal)
+    private Matrix<float> ReLUDerivative(Matrix<float> A)
     {
-        return ATotal > 0 ? 1 : 0;
+        Matrix<float> matrix = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
+
+        for (int c = 0; c < A.ColumnCount; c++)
+        {
+            for (int r = 0; r < A.RowCount; r++)
+            {
+                matrix[r, c] = A[r, c] > 0 ? 1.0f : 0;
+            }
+        }
+
+        return matrix;
+    }
+
+    private float ReLUDerivative(float A)
+    {
+        return A > 0 ? 1 : 0;
     }
 
     private void OnDestroy()
