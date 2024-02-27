@@ -5,3 +5,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
     
 }
+
+
+float ReLUDerivative(float x)
+{
+    return x > 0.0f;
+}

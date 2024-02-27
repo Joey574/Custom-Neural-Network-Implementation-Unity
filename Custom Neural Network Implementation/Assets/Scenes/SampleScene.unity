@@ -262,7 +262,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputSize: 784
   outputSize: 10
-  hiddenSize: 8000000080000000
+  hiddenSize: 80000000
   learningRate: 0.1
   iterations: 500
   started: 0
@@ -285,7 +285,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   labels: 
-  dataNum: 5000
+  dataNum: 500
   ImagesLoaded: 0
   TestingLabels: 
 --- !u!1660057539 &9223372036854775807

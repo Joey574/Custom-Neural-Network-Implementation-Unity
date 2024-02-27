@@ -65,9 +65,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             trainingThread.Start();
         }
 
-        if (complete)
+        if (complete && !testingThread.IsAlive && !testingComplete)
         {
-            complete = false;
             trainingThread.Join();
             testingThread = new Thread(TestNetwork);
             testingThread.Start();
@@ -265,10 +264,11 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         {
             Parallel.For(0, dWeights[x].ColumnCount, i =>
             {
-                for (int j = 0; j < dWeights[x].RowCount; j++)
+                Parallel.For(0, dWeights[x].RowCount, j =>
                 {
                     dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(x == 0 ? dataSet.images.Row(j) : A[x - 1].Row(j));
-                }
+
+                });
             });
         });
 
