@@ -201,16 +201,16 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private float Accuracy(Vector<float> predictions, List<int> labels)
     {
-        float correct = 0;
+        int correct = 0;
 
-        Parallel.For(0, predictions.Count, i =>
+        for(int i = 0; i < predictions.Count; i++)
         {
-            if (predictions[i].AlmostEqual(labels[i], 0.01))
+            if (predictions[i].AlmostEqual(labels[i], 0.1))
             {
                 correct++;
             }
-        });
-        return correct / predictions.Count;
+        }
+        return (float)correct / predictions.Count;
     }
 
     private Vector<float> Predictions(int len)
@@ -348,38 +348,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private Matrix<float> ReLU(Matrix<float> A) 
     {
         return A.Map(x => x < 0 ? 0.0f : x);
-    }
-
-    private float ReLU(float A)
-    {
-        return A < 0 ? 0.0f : A;
-    }
-
-    private Matrix<float> ReLUDerivative(Matrix<float> A)
-    {
-        Matrix<float> matrix = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
-
-        for (int c = 0; c < A.ColumnCount; c++)
-        {
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                matrix[r, c] = A[r, c] > 0 ? 1.0f : 0;
-            }
-        }
-
-        return matrix;
-    }
-
-    private Vector<float> ReLUDerivative(Vector<float> A)
-    {
-        Vector<float> result = Vector<float>.Build.Dense(A.Count);
-
-        for (int i = 0; i < A.Count; i++)
-        {
-            result[i] = A[i] > 0 ? 1.0f : 0;
-        }
-
-        return result;
     }
 
     private float ReLUDerivative(float A)
