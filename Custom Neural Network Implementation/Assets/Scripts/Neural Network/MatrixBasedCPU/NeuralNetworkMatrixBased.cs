@@ -171,7 +171,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         for (int i = 0; i < iterations && !complete; i++)
         {
-            UnityEngine.Debug.Log("Iteration: " + i);
+            UnityEngine.Debug.Log("Iteration: " + i + " Accuracy: " + Accuracy(Predictions(dataSet.dataNum), dataSet.labels));
 
             var watch = Stopwatch.StartNew();
 
@@ -184,8 +184,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             UnityEngine.Debug.Log("Backward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
 
             UpdateNetwork();
-
-            UnityEngine.Debug.Log("Accuracy: " + Accuracy(Predictions(dataSet.dataNum), dataSet.labels));
 
             watch.Stop();
         }
@@ -247,34 +245,40 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void BackwardProp()
     {
+        // Calculate error of prediction
         dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
 
+        // Calculate total error of network
         for (int x = dTotal.Count - 2; x >= 0; x--)
         {
-            Parallel.For(0, dataSet.dataNum, i =>
+            Parallel.For(0, dTotal[x].ColumnCount, i =>
             {
-                for (int j = 0; j < hiddenSize[x]; j++)
+                Parallel.For(0, dTotal[x].RowCount, j =>
                 {
                     dTotal[x][j, i] = weights[x + 1].Row(j).DotProduct(dTotal[x + 1].Column(i)) * ReLUDerivative(ATotal[x][j, i]);
-                }
+                });
             });
         }
 
+        // Calculate weights
         Parallel.For(0, dWeights.Count, x =>
         {
             Parallel.For(0, dWeights[x].ColumnCount, i =>
             {
                 for (int j = 0; j < dWeights[x].RowCount; j++)
                 {
-                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct( x > 0 ? A[x - 1].Row(j) : dataSet.images.Row(j));
+                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(x == 0 ? dataSet.images.Row(j) : A[x - 1].Row(j));
                 }
             });
         });
 
+        // Calculate biases
         Parallel.For(0, biases.Count, i =>
         {
             dBiases[i] = (1.0f / (float)dataSet.dataNum) * dTotal[i].RowSums();
         });
+
+        // old working code ----
 
         //dZ2 = A2 - dataSet.Y;
 
@@ -348,7 +352,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private float ReLU(float A)
     {
-        return A > 1 ? 1.0f : A < 0 ? 0.0f : A;
+        return A < 0 ? 0.0f : A;
     }
 
     private Matrix<float> ReLUDerivative(Matrix<float> A)
