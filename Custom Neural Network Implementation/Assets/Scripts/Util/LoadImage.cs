@@ -22,7 +22,6 @@ public class LoadImage : MonoBehaviour
     public Matrix<float> images;
     public Matrix<float> Y;
     public List<int> labels;
-    public int dataNum;
     private int imageNum;
 
     public bool ImagesLoaded = false;
@@ -64,16 +63,13 @@ public class LoadImage : MonoBehaviour
         ReadBigInt32(TestingLabelReader); // Discard testingLabel data
         ReadBigInt32(TestingLabelReader);
 
-        images = Matrix<float>.Build.Dense(width * height, dataNum);
+        images = Matrix<float>.Build.Dense(width * height, imageNum);
         TestingImages = Matrix<float>.Build.Dense(width * height, testingNum);
 
         labels = new List<int>();
         TestingLabels = new List<int>();
 
-        Debug.Log("numOfImages: " + imageNum);
-        Debug.Log("numOfLabels: " + numLabels);
-
-        for (int i = 0; i < dataNum && i < imageNum; i++)
+        for (int i = 0; i < imageNum; i++)
         {
             byte[] bytes = reader.ReadBytes(width * height);
             float[] floats = new float[bytes.Length];
@@ -96,8 +92,6 @@ public class LoadImage : MonoBehaviour
         images = images.Divide(255);
         TestingImages = TestingImages.Divide(255);
 
-        Debug.Log("Images Loaded");
-
         reader.Close();
         labelReader.Close();
 
@@ -111,8 +105,9 @@ public class LoadImage : MonoBehaviour
             Vector<float> y = Vector<float>.Build.Dense(10);
             y[labels[i]] = 1;
             Y.SetColumn(i, y);
-        }      
+        }
 
+        Debug.Log("Images Loaded");
         ImagesLoaded = true;
     }
 

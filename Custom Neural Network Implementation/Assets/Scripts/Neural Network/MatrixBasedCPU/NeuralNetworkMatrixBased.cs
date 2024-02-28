@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using Unity.Mathematics;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -15,6 +16,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     public List<int> hiddenSize;
 
     public float learningRate;
+    public float threshholdAccuracy;
+    public int batchNum;
     public int iterations;
 
     [Header("Status")]
@@ -30,6 +33,9 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     [Header("Input data")]
     private LoadImage dataSet;
+    private Matrix<float> images;
+    private Matrix<float> Y;
+    private List<int> labels;
 
     [Header("Neural Net Data")]
     private List<Matrix<float>> weights;
@@ -52,14 +58,17 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     void Awake()
     {
         dataSet = gameObject.GetComponent<LoadImage>();
+
+        testingThread = new Thread(TestNetwork);
+        trainingThread = new Thread(TrainNetwork);
     }
 
     void Update()
     {
+
         if (dataSet.ImagesLoaded && !started)
         {
             started = true;
-            trainingThread = new Thread(TrainNetwork);
             InitializeNetwork();
             UnityEngine.Debug.Log("TRAINING STARTED");
             trainingThread.Start();
@@ -68,7 +77,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         if (complete && !testingThread.IsAlive && !testingComplete)
         {
             trainingThread.Join();
-            testingThread = new Thread(TestNetwork);
             testingThread.Start();
 
             if (Save)
@@ -120,7 +128,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             dBiases.Add(Vector<float>.Build.Dense(biases[i].Count));
         }
 
-        InitializeResultMatrices(dataSet.dataNum);
+        InitializeResultMatrices(batchNum);
 
         // Display
         int connections = 0;
@@ -166,15 +174,47 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
     }
 
+    private Matrix<float> RandomizeInput(Matrix<float> input, int batch)
+    {
+        labels = new List<int>();
+        Y = Matrix<float>.Build.Dense(outputSize, batch);
+        Matrix<float> a = Matrix<float>.Build.Dense(input.RowCount, batch);
+        HashSet<int> used = new HashSet<int>();
+        System.Random rn = new System.Random();
+
+        for (int i = 0; labels.Count < batch; i++)
+        {
+            int c = rn.Next(0, input.ColumnCount - 1);
+
+            if (!used.Contains(c))
+            {
+                a.SetColumn(labels.Count, input.Column(c));
+                Y.SetColumn(labels.Count, dataSet.Y.Column(c));
+                labels.Add(dataSet.labels[c]);
+            }
+        }
+
+        return a;
+    }
+
     private void TrainNetwork()
     {
+        images = RandomizeInput(dataSet.images, batchNum);
+
         for (int i = 0; i < iterations && !complete; i++)
         {
-            UnityEngine.Debug.Log("Iteration: " + i + " Accuracy: " + Accuracy(Predictions(dataSet.dataNum), dataSet.labels));
+            float acc = Accuracy(Predictions(batchNum), labels);
+
+            if (acc > threshholdAccuracy)
+            {
+                images = RandomizeInput(dataSet.images, batchNum);
+            }
+
+            UnityEngine.Debug.Log("Iteration: " + i + " Accuracy: " + acc);
 
             var watch = Stopwatch.StartNew();
 
-            ForwardProp(dataSet.images);
+            ForwardProp(images);
             UnityEngine.Debug.Log("Forward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
 
             watch.Restart();
@@ -226,47 +266,42 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void ForwardProp(Matrix<float> input)
     {
-        Parallel.For(0, input.ColumnCount, i =>
-        {
-            ATotal[0].SetColumn(i, weights[0].LeftMultiply(input.Column(i)) + biases[0]);
-        });
-        A[0] = ReLU(ATotal[0]);
-
-        Parallel.For(1, A.Count, x =>
+        for (int x = 0; x < A.Count; x++)
         {
             Parallel.For(0, input.ColumnCount, i =>
             {
-                ATotal[x].SetColumn(i, weights[x].LeftMultiply(A[x - 1].Column(i)) + biases[x]);
+                ATotal[x].SetColumn(i, weights[x].LeftMultiply(x == 0 ? input.Column(i) : A[x - 1].Column(i)) + biases[x]);
             });
             A[x] = x < A.Count - 1 ? ReLU(ATotal[x]) : Softmax(ATotal[x]);
-        });
+        }
     }
 
     private void BackwardProp()
     {
         // Calculate error of prediction
-        dTotal[dTotal.Count - 1] = A[A.Count - 1] - dataSet.Y;
+        dTotal[dTotal.Count - 1] = A[A.Count - 1] - Y;
 
         // Calculate total error of network
-        for (int x = dTotal.Count - 2; x >= 0; x--)
+        for (int i = dTotal.Count - 2; i >= 0; i--)
         {
-            Parallel.For(0, dTotal[x].ColumnCount, i =>
+            Parallel.For(0, dTotal[i].ColumnCount, c =>
             {
-                Parallel.For(0, dTotal[x].RowCount, j =>
+                Parallel.For(0, dTotal[i].RowCount, r =>
                 {
-                    dTotal[x][j, i] = weights[x + 1].Row(j).DotProduct(dTotal[x + 1].Column(i)) * ReLUDerivative(ATotal[x][j, i]);
+                    dTotal[i][r, c] = weights[i + 1].Row(r).DotProduct(dTotal[i + 1].Column(c)) * ReLUDerivative(ATotal[i][r, c]);
+                    //UnityEngine.Debug.Log(i + ": " + dTotal[i][r, c]);
                 });
             });
         }
 
         // Calculate weights
-        Parallel.For(0, dWeights.Count, x =>
+        Parallel.For(0, dWeights.Count, i =>
         {
-            Parallel.For(0, dWeights[x].ColumnCount, i =>
+            Parallel.For(0, dWeights[i].ColumnCount, c =>
             {
-                Parallel.For(0, dWeights[x].RowCount, j =>
+                Parallel.For(0, dWeights[i].RowCount, r =>
                 {
-                    dWeights[x][j, i] = (1.0f / (float)dataSet.dataNum) * dTotal[x].Row(i).DotProduct(x == 0 ? dataSet.images.Row(j) : A[x - 1].Row(j));
+                    dWeights[i][r, c] = (1.0f / (float)batchNum) * dTotal[i].Row(c).DotProduct(i == 0 ? images.Row(r) : A[i - 1].Row(r));
 
                 });
             });
@@ -275,7 +310,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         // Calculate biases
         Parallel.For(0, biases.Count, i =>
         {
-            dBiases[i] = (1.0f / (float)dataSet.dataNum) * dTotal[i].RowSums();
+            dBiases[i] = (1.0f / (float)batchNum) * dTotal[i].RowSums();
         });
 
         // old working code ----
@@ -314,7 +349,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Parallel.For(0, weights.Count, i =>
         {
-            weights[i] = weights[i] - learningRate * dWeights[i];
+            weights[i] -= dWeights[i].Multiply(learningRate);
 
         });
 
@@ -328,7 +363,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Matrix<float> softmax = A;
 
-        for (int i = 0; i < dataSet.dataNum; i++)
+        for (int i = 0; i < batchNum; i++)
         {
             float sum = 0;
 
