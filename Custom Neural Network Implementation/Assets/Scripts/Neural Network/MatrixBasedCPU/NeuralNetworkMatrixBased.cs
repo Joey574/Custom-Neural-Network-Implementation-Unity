@@ -61,6 +61,10 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         testingThread = new Thread(TestNetwork);
         trainingThread = new Thread(TrainNetwork);
+        saveThread = new Thread(() =>
+        {
+            SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
+        });
     }
 
     void Update()
@@ -81,10 +85,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             if (Save)
             {
-                saveThread = new Thread(() =>
-                {
-                    SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
-                });
                 saveThread.Start();
             }
         }
@@ -295,7 +295,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
 
         // Calculate weights
-        Parallel.For(0, dWeights.Count, i =>
+        for (int i = 0; i < dWeights.Count; i ++)
         {
             Parallel.For(0, dWeights[i].ColumnCount, c =>
             {
@@ -305,44 +305,13 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
                 });
             });
-        });
+        }
 
         // Calculate biases
         Parallel.For(0, biases.Count, i =>
         {
             dBiases[i] = (1.0f / (float)batchNum) * dTotal[i].RowSums();
         });
-
-        // old working code ----
-
-        //dZ2 = A2 - dataSet.Y;
-
-        //Parallel.For(0, dataSet.dataNum, i =>
-        //{
-        //    for (int j = 0; j < hiddenSize; j++)
-        //    {
-        //        dZ1[j, i] = W2.Row(j).DotProduct(dZ2.Column(i)) * ReLUDerivative(A1Total[j, i]);
-        //    }
-        //});
-
-        //dB1 = (1.0f / (float)dataSet.dataNum) * dZ1.RowSums();
-        //dB2 = (1.0f / (float)dataSet.dataNum) * dZ2.RowSums();
-
-        //Parallel.For(0, hiddenSize, i =>
-        //{
-        //    for (int j = 0; j < inputSize; j++)
-        //    {
-        //        dW1[j, i] = (1.0f / (float)dataSet.dataNum) * dZ1.Row(i).DotProduct(dataSet.images.Row(j));
-        //    }
-        //});
-
-        //Parallel.For(0, outputSize, i =>
-        //{
-        //    for (int j = 0; j < hiddenSize; j++)
-        //    {
-        //        dW2[j, i] = (1.0f / (float)dataSet.dataNum) * dZ2.Row(i).DotProduct(A1.Row(j));
-        //    }
-        //});
     }
 
     private void UpdateNetwork()
@@ -394,20 +363,16 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         if (!complete && Save)
         {
-            saveThread = new Thread(() =>
-            {
-                SaveNetwork.SaveNeuralNetwork(weights, biases, SaveName);
-            });
             saveThread.Start();
         }
 
         complete = true;
-        trainingThread.Abort();
-        trainingThread.Join();
-        testingThread.Abort();
-        testingThread.Join();
+        if (trainingThread.IsAlive) { trainingThread.Join(); }
+        if (testingThread.IsAlive) { testingThread.Join(); }
 
-        saveThread.Join();
+        if (saveThread.IsAlive) { saveThread.Join(); }
+
+        UnityEngine.Debug.Log("Threads Joined");
     }
 
     private void OnGUI()

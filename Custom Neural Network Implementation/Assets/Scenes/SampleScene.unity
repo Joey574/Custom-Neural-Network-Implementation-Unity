@@ -262,7 +262,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputSize: 784
   outputSize: 10
-  hiddenSize: 1e0000001e0000001e0000001e0000001e0000001e0000001e0000001e0000001e0000001e000000
+  hiddenSize: 0001000000010000
   learningRate: 0.1
   threshholdAccuracy: 0.25
   batchNum: 500
@@ -271,8 +271,8 @@ MonoBehaviour:
   initialized: 0
   complete: 0
   testingComplete: 0
-  Save: 0
-  SaveName: 30x8BatchedTraining
+  Save: 1
+  SaveName: TestNetwork
   LoadName: 
 --- !u!114 &656604486
 MonoBehaviour:
