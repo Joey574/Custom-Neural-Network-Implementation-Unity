@@ -279,7 +279,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     private void BackwardProp()
     {
         // Calculate error of prediction
-        dTotal[dTotal.Count - 1] = A[A.Count - 1] - Y;
+        dTotal[dTotal.Count - 1] = A[A.Count - 1].Subtract(Y);
 
         // Calculate total error of network
         for (int i = dTotal.Count - 2; i >= 0; i--)
@@ -289,7 +289,15 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 Parallel.For(0, dTotal[i].RowCount, r =>
                 {
                     dTotal[i][r, c] = weights[i + 1].Row(r).DotProduct(dTotal[i + 1].Column(c)) * ReLUDerivative(ATotal[i][r, c]);
-                    //UnityEngine.Debug.Log(i + ": " + dTotal[i][r, c]);
+                    //if (float.IsNaN(dTotal[i + 1].Column(c)[0]))
+                    //{
+                    //    string o = "";
+                    //    for (int q = 0; q < dTotal[i + 1].Column(c).Count; q++)
+                    //    {
+                    //        o += dTotal[i + 1].Column(c)[q] + " ";
+                    //    }
+                    //    UnityEngine.Debug.Log(o);
+                    //}
                 });
             });
         }

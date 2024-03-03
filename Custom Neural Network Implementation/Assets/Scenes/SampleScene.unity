@@ -268,7 +268,7 @@ MonoBehaviour:
   batchNum: 500
   iterations: 1000
   started: 0
-  initialized: 0
+  initialized: 1
   complete: 0
   testingComplete: 0
   Save: 0
