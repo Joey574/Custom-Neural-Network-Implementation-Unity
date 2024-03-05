@@ -278,7 +278,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 {
                     if (float.IsNaN(ATotal[x][p,i]))
                     {
-                        UnityEngine.Debug.Log("NAN at: " + x + ": " + p + ", " + i + " A: " + A[x - 1].Column(p).ToString());
+                        UnityEngine.Debug.Log("NAN at: " + x + ": " + p + ", " + i + " A: " + (x == 0 ? input.Column(i).ToString() : A[x - 1].Column(i).ToString()));
                     }
                 }
             });
