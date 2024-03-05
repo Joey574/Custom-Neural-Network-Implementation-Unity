@@ -262,7 +262,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputSize: 784
   outputSize: 10
-  hiddenSize: 800000008000000040000000
+  hiddenSize: 8000000080000000
   learningRate: 0.1
   threshholdAccuracy: 0.25
   batchNum: 800

@@ -331,20 +331,29 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Matrix<float> softmax = A;
 
-        for (int i = 0; i < batchNum; i++)
+        //for (int i = 0; i < batchNum; i++)
+        //{
+        //    float sum = 0;
+
+        //    for (int r = 0; r < A.RowCount; r++)
+        //    {
+        //        sum += Mathf.Exp(A[r, i]);
+        //    }
+
+        //    for (int r = 0; r < A.RowCount; r++)
+        //    {
+        //        softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
+        //    }
+        //}
+
+        // e ^ An
+        // sum(e ^ A)
+
+        for (int c = 0; c < softmax.ColumnCount; c++)
         {
-            float sum = 0;
-
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                sum += Mathf.Exp(A[r, i]);
-            }
-
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
-            }
+            softmax.SetColumn(c, Vector<float>.Exp(A.Column(c)) / Vector<float>.Exp(A.Column(c)).Sum());
         }
+
         return softmax;
     }
 
