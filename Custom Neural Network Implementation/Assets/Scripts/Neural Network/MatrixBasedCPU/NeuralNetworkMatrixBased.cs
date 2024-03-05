@@ -7,8 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Unity.Mathematics;
-using System.Linq;
-using Unity.VisualScripting;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -296,13 +294,14 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
         }
 
         // Calculate weights
-        for (int i = 0; i < dWeights.Count; i ++)
+        for (int i = 0; i < dWeights.Count; i++)
         {
             Parallel.For(0, dWeights[i].ColumnCount, c =>
             {
                 Parallel.For(0, dWeights[i].RowCount, r =>
                 {
                     dWeights[i][r, c] = (1.0f / (float)batchNum) * dTotal[i].Row(c).DotProduct(i == 0 ? images.Row(r) : A[i - 1].Row(r));
+
                 });
             });
         }
@@ -318,30 +317,40 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Parallel.For(0, weights.Count, i =>
         {
-            weights[i].Subtract(dWeights[i].Multiply(learningRate));
+            weights[i] -= dWeights[i].Multiply(learningRate);
+
         });
 
-        Parallel.For(0, biases.Count, i =>
+        Parallel.For(0, weights.Count, i =>
         {
-            biases[i].Subtract(dBiases[i].Multiply(learningRate));
+            biases[i] -= dBiases[i].Multiply(learningRate);
         });
     }
 
     private Matrix<float> Softmax(Matrix<float> A)
     {
-        Matrix<float> softmax = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
+        Matrix<float> softmax = A;
 
-        for (int i = 0; i < softmax.ColumnCount; i++)
+        for (int i = 0; i < batchNum; i++)
         {
-            softmax.SetColumn(i, A.Column(i).Divide(A.Column(i).Multiply((float)Math.E).Sum()));
-        }
+            float sum = 0;
 
+            for (int r = 0; r < A.RowCount; r++)
+            {
+                sum += Mathf.Exp(A[r, i]);
+            }
+
+            for (int r = 0; r < A.RowCount; r++)
+            {
+                softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
+            }
+        }
         return softmax;
     }
 
-    private Matrix<float> ReLU(Matrix<float> A) 
+    private Matrix<float> ReLU(Matrix<float> A)
     {
-        return A.Map(x => x < 0.0f ? 0.0f : x);
+        return A.Map(x => x < 0 ? 0.0f : x);
     }
 
     private float ReLUDerivative(float A)
