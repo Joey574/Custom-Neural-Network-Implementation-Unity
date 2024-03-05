@@ -273,14 +273,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             Parallel.For(0, input.ColumnCount, i =>
             {
                 ATotal[x].SetColumn(i, weights[x].LeftMultiply(x == 0 ? input.Column(i) : A[x - 1].Column(i)) + biases[x]);
-
-                for (int p = 0; p < ATotal[x].Column(i).Count; p++)
-                {
-                    if (float.IsNaN(ATotal[x][p,i]))
-                    {
-                        UnityEngine.Debug.Log("NAN at: " + x + ": " + p + ", " + i + " A: " + (x == 0 ? input.Column(i).ToString() : A[x - 1].Column(i).ToString()));
-                    }
-                }
             });
             A[x] = x < A.Count - 1 ? ReLU(ATotal[x]) : Softmax(ATotal[x]);
         }
@@ -311,7 +303,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 Parallel.For(0, dWeights[i].RowCount, r =>
                 {
                     dWeights[i][r, c] = (1.0f / (float)batchNum) * dTotal[i].Row(c).DotProduct(i == 0 ? images.Row(r) : A[i - 1].Row(r));
-
                 });
             });
         }
@@ -327,13 +318,12 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         Parallel.For(0, weights.Count, i =>
         {
-            weights[i] -= dWeights[i].Multiply(learningRate);
-
+            weights[i].Subtract(dWeights[i].Multiply(learningRate));
         });
 
-        Parallel.For(0, weights.Count, i =>
+        Parallel.For(0, biases.Count, i =>
         {
-            biases[i] -= dBiases[i].Multiply(learningRate);
+            biases[i].Subtract(dBiases[i].Multiply(learningRate));
         });
     }
 
