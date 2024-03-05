@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Unity.Mathematics;
+using System.Linq;
+using Unity.VisualScripting;
 
 public class NeuralNetworkMatrixBased : MonoBehaviour
 {
@@ -242,7 +244,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         int correct = 0;
 
-        for(int i = 0; i < predictions.Count; i++)
+        for (int i = 0; i < predictions.Count; i++)
         {
             if (predictions[i].AlmostEqual(labels[i], 0.1))
             {
@@ -271,6 +273,14 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
             Parallel.For(0, input.ColumnCount, i =>
             {
                 ATotal[x].SetColumn(i, weights[x].LeftMultiply(x == 0 ? input.Column(i) : A[x - 1].Column(i)) + biases[x]);
+
+                for (int p = 0; p < ATotal[x].Column(i).Count; p++)
+                {
+                    if (float.IsNaN(ATotal[x][p,i]))
+                    {
+                        UnityEngine.Debug.Log("NAN at: " + x + ": " + p + ", " + i + " A: " + A[x - 1].Column(p).ToString());
+                    }
+                }
             });
             A[x] = x < A.Count - 1 ? ReLU(ATotal[x]) : Softmax(ATotal[x]);
         }
@@ -289,15 +299,6 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 Parallel.For(0, dTotal[i].RowCount, r =>
                 {
                     dTotal[i][r, c] = weights[i + 1].Row(r).DotProduct(dTotal[i + 1].Column(c)) * ReLUDerivative(ATotal[i][r, c]);
-                    //if (float.IsNaN(dTotal[i + 1].Column(c)[0]))
-                    //{
-                    //    string o = "";
-                    //    for (int q = 0; q < dTotal[i + 1].Column(c).Count; q++)
-                    //    {
-                    //        o += dTotal[i + 1].Column(c)[q] + " ";
-                    //    }
-                    //    UnityEngine.Debug.Log(o);
-                    //}
                 });
             });
         }
@@ -338,28 +339,19 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Matrix<float> Softmax(Matrix<float> A)
     {
-        Matrix<float> softmax = A;
+        Matrix<float> softmax = Matrix<float>.Build.Dense(A.RowCount, A.ColumnCount);
 
-        for (int i = 0; i < batchNum; i++)
+        for (int i = 0; i < softmax.ColumnCount; i++)
         {
-            float sum = 0;
-
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                sum += Mathf.Exp(A[r, i]);
-            }
-
-            for (int r = 0; r < A.RowCount; r++)
-            {
-                softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
-            }
+            softmax.SetColumn(i, A.Column(i).Divide(A.Column(i).Multiply((float)Math.E).Sum()));
         }
+
         return softmax;
     }
 
     private Matrix<float> ReLU(Matrix<float> A) 
     {
-        return A.Map(x => x < 0 ? 0.0f : x);
+        return A.Map(x => x < 0.0f ? 0.0f : x);
     }
 
     private float ReLUDerivative(float A)
