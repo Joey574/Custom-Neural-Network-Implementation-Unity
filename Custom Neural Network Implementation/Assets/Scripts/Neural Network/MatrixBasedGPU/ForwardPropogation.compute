@@ -1,30 +1,27 @@
 #pragma kernel CSMain
 
-RWTexture2D<float4> weights;
-RWTexture2D<float4> biases;
-
-RWTexture2D<float4> Z;
-RWTexture2D<float4> A;
-
 int count;
-int dispatchInc;
+int dispatchSize;
+Buffer<float> input;
+
+RWBuffer<float> total;
+RWBuffer<float> activation;
+
+float ReLU(float x)
+{
+    return max(0.0f, x);
+}
 
 float Sum()
 {
-    return 0;
-}
-
-float ReLU(float4 x)
-{
-    return max(0.0f, x.r);
+    
 }
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    for (int i = 0; i < count; i = i + dispatchInc)
+    for (int i = id.x + (id.y * dispatchSize); i < count; i++)
     {
-        Z[int2(i, 0)] = Sum() + biases[int2(i, 0)];
-        A[int2(i, 0)].r = ReLU(Z[int2(i, 0)]);
+        
     }
 }

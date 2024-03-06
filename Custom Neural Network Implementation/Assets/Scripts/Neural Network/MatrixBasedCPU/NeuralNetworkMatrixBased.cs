@@ -369,6 +369,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void OnDestroy()
     {
+        bool t = complete;
+
         if (!complete && Save)
         {
             saveThread.Start();
@@ -376,6 +378,12 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
         complete = true;
         if (trainingThread.IsAlive) { trainingThread.Join(); }
+
+        if (!t)
+        {
+            testingThread.Start();
+        }
+
         if (testingThread.IsAlive) { testingThread.Join(); }
 
         if (saveThread.IsAlive) { saveThread.Join(); }
