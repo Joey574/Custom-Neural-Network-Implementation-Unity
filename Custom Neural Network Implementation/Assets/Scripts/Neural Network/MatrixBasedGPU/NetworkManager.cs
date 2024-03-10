@@ -38,6 +38,8 @@ public class NetworkManager : MonoBehaviour
         fpKernelID = ForwardPropogation.FindKernel("CSMain");
         bpKernelID = BackwardPropogation.FindKernel("CSMain");
         udnKernelID = UpdateNetwork.FindKernel("CSMain");
+
+        DispatchKernals();
     }
 
     void Update()

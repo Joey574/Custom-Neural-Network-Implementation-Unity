@@ -1,24 +1,50 @@
 #pragma kernel CSMain
 
-int dispatchSize;
+int dispatchSizeX;
+int dispatchSizeY;
 
-RWTexture2D<float4> Activation[];
-RWTexture2D<float4> ATotal[];
-RWTexture2D<float4> Weights[];
-RWTexture2D<float4> Biases[];
+RWTexture2D<float> Input;
+RWTexture2D<float> Activation;
+RWTexture2D<float> ATotal;
+RWTexture2D<float> Weights;
+RWTexture2D<float> Biases;
 
 float ReLU(float x)
 {
     return max(0.0f, x);
 }
 
-float Sum()
+float Sum(int index)
 {
+    uint x;
+    uint y;
     
+    Weights.GetDimensions(x, y);
+    
+    float sum;
+    
+    for (int i = 0; i < x; x++)
+    {
+        sum += Weights[int2(i, index)].r * Input[int2(i, index)].r;
+    }
+    
+    return sum;
 }
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
+    uint colc;
+    uint rowc;
     
+    Input.GetDimensions(colc, rowc);
+    
+    for (int c = id.x; c < colc; c = c + dispatchSizeX)
+    {
+        for (int r = id.y; r < rowc; r = r + dispatchSizeY)
+        {
+            ATotal[int2(c, r)].r = Sum(c) + Biases[int2(r, 0)].r;
+            Activation[int2(c, r)].r = ReLU(ATotal[int2(c, r)].r);
+        }        
+    }
 }
