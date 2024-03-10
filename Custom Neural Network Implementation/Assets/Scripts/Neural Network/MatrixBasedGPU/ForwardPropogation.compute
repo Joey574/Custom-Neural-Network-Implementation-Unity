@@ -1,11 +1,11 @@
 #pragma kernel CSMain
 
-int count;
 int dispatchSize;
-Buffer<float> input;
 
-RWBuffer<float> total;
-RWBuffer<float> activation;
+RWTexture2D<float4> Activation[];
+RWTexture2D<float4> ATotal[];
+RWTexture2D<float4> Weights[];
+RWTexture2D<float4> Biases[];
 
 float ReLU(float x)
 {
@@ -20,8 +20,5 @@ float Sum()
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    for (int i = id.x + (id.y * dispatchSize); i < count; i++)
-    {
-        
-    }
+    
 }

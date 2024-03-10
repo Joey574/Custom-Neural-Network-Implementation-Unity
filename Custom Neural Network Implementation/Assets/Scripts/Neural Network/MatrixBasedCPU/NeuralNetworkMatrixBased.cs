@@ -59,6 +59,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
     {
         dataSet = gameObject.GetComponent<LoadImage>();
 
+        labels = new List<int>();
+
         testingThread = new Thread(TestNetwork);
         trainingThread = new Thread(TrainNetwork);
         saveThread = new Thread(() =>
@@ -176,11 +178,12 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Matrix<float> RandomizeInput(Matrix<float> input, int batch)
     {
-        labels = new List<int>();
-        Y = Matrix<float>.Build.Dense(outputSize, batch);
         Matrix<float> a = Matrix<float>.Build.Dense(input.RowCount, batch);
         HashSet<int> used = new HashSet<int>();
         System.Random rn = new System.Random();
+
+        labels.Clear();
+        Y = Matrix<float>.Build.Dense(outputSize, batch);
 
         for (int i = 0; labels.Count < batch; i++)
         {
@@ -191,6 +194,7 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
                 a.SetColumn(labels.Count, input.Column(c));
                 Y.SetColumn(labels.Count, dataSet.Y.Column(c));
                 labels.Add(dataSet.labels[c]);
+                used.Add(c);
             }
         }
 
@@ -329,32 +333,12 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private Matrix<float> Softmax(Matrix<float> A)
     {
-        Matrix<float> softmax = A;
-
-        //for (int i = 0; i < batchNum; i++)
-        //{
-        //    float sum = 0;
-
-        //    for (int r = 0; r < A.RowCount; r++)
-        //    {
-        //        sum += Mathf.Exp(A[r, i]);
-        //    }
-
-        //    for (int r = 0; r < A.RowCount; r++)
-        //    {
-        //        softmax[r, i] = Mathf.Exp(softmax[r, i]) / sum;
-        //    }
-        //}
-
-        // e ^ An
-        // sum(e ^ A)
-
-        for (int c = 0; c < softmax.ColumnCount; c++)
+        for (int c = 0; c < A.ColumnCount; c++)
         {
-            softmax.SetColumn(c, Vector<float>.Exp(A.Column(c)) / Vector<float>.Exp(A.Column(c)).Sum());
+            A.SetColumn(c, Vector<float>.Exp(A.Column(c)) / Vector<float>.Exp(A.Column(c)).Sum());
         }
 
-        return softmax;
+        return A;
     }
 
     private Matrix<float> ReLU(Matrix<float> A)
