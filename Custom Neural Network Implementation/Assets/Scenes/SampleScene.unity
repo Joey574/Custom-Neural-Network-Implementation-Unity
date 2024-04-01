@@ -263,10 +263,10 @@ MonoBehaviour:
   inputSize: 784
   outputSize: 10
   hiddenSize: 800000008000000080000000
-  learningRate: 0.1
-  threshholdAccuracy: 0.25
-  batchNum: 800
-  iterations: 1000
+  learningRate: 0.05
+  threshholdAccuracy: 0.2
+  batchNum: 500
+  iterations: 250
   started: 0
   initialized: 0
   complete: 0

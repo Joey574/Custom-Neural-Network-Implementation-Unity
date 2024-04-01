@@ -203,6 +203,8 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
     private void TrainNetwork()
     {
+        var watch = Stopwatch.StartNew();
+
         images = RandomizeInput(dataSet.images, batchNum);
 
         for (int i = 0; i < iterations && !complete; i++)
@@ -216,20 +218,20 @@ public class NeuralNetworkMatrixBased : MonoBehaviour
 
             UnityEngine.Debug.Log("Iteration: " + i + " Accuracy: " + acc);
 
-            var watch = Stopwatch.StartNew();
 
             ForwardProp(images);
-            UnityEngine.Debug.Log("Forward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
+            //UnityEngine.Debug.Log("Forward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
 
-            watch.Restart();
 
             BackwardProp();
-            UnityEngine.Debug.Log("Backward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
+            //UnityEngine.Debug.Log("Backward Prop Complete: " + (watch.ElapsedMilliseconds) + "ms");
 
             UpdateNetwork();
 
-            watch.Stop();
         }
+        UnityEngine.Debug.Log("Total training time: " + (watch.ElapsedMilliseconds / 1000.00) + " seconds :: " + ((watch.ElapsedMilliseconds / 1000.00) / 60.00) + " minutes :: " + (((watch.ElapsedMilliseconds / 1000.00) / 60.00) / 60.00) + " hours");
+        UnityEngine.Debug.Log("Average Iteration time: " + (watch.ElapsedMilliseconds / iterations) + "ms");
+        watch.Stop();
         complete = true;
     }
 
